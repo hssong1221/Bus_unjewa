@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'busroute_entity.freezed.dart';
 part 'busroute_entity.g.dart';
 
-@freezed
+@Freezed(fromJson: false)
 sealed class BusRouteEntity with _$BusRouteEntity {
   const factory BusRouteEntity({
     required String regionName,
@@ -16,6 +16,16 @@ sealed class BusRouteEntity with _$BusRouteEntity {
     required int staOrder,
   }) = _BusRouteEntity;
 
-  factory BusRouteEntity.fromJson(Map<String, dynamic> json) =>
-      _$BusRouteEntityFromJson(json);
+  factory BusRouteEntity.fromJson(Map<String, dynamic> json) {
+    return BusRouteEntity(
+      regionName: json['regionName'],
+      routeDestId: json['routeDestId'],
+      routeDestName: json['routeDestName'],
+      routeId: json['routeId'],
+      routeName: json['routeName'].toString(), // 명시적 변환
+      routeTypeCd: json['routeTypeCd'],
+      routeTypeName: json['routeTypeName'],
+      staOrder: json['staOrder'],
+    );
+  }
 }

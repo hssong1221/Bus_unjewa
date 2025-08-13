@@ -3,7 +3,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 part 'busstation_entity.freezed.dart';
 part 'busstation_entity.g.dart';
 
-@freezed
+@Freezed(fromJson: false)
 sealed class BusStationEntity with _$BusStationEntity {
   const factory BusStationEntity({
     required String centerYn,
@@ -16,6 +16,16 @@ sealed class BusStationEntity with _$BusStationEntity {
     required int distance,
   }) = _BusStationEntity;
 
-  factory BusStationEntity.fromJson(Map<String, dynamic> json) =>
-      _$BusStationEntityFromJson(json);
+  factory BusStationEntity.fromJson(Map<String, dynamic> json) {
+    return BusStationEntity(
+      centerYn: json['centerYn'],
+      mobileNo: json['mobileNo'].toString(),
+      regionName: json['regionName'],
+      stationId: json['stationId'],
+      stationName: json['stationName'],
+      x: json['x'],
+      y: json['y'],
+      distance: json['distance'],
+    );
+  }
 }
