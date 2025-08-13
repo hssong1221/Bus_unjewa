@@ -1,15 +1,18 @@
-class BusStationModel {
-  final String mobileNo;
-  final String regionName;
-  final int stationId;
-  final String stationName;
-  final int distance;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  BusStationModel({
-    required this.mobileNo,
-    required this.regionName,
-    required this.stationId,
-    required this.stationName,
-    required this.distance,
-  });
+part 'busstation_model.freezed.dart';
+part 'busstation_model.g.dart';
+
+@freezed
+sealed class BusStationModel with _$BusStationModel {
+  const factory BusStationModel({
+    required String mobileNo,
+    required String regionName,
+    required int stationId,
+    required String stationName,
+    required int distance,
+  }) = _BusStationModel;
+
+  factory BusStationModel.fromJson(Map<String, dynamic> json) =>
+      _$BusStationModelFromJson(json);
 }

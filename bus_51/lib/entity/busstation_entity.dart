@@ -1,34 +1,21 @@
-class BusStationEntity {
-  final String centerYn;
-  final String mobileNo;    // 정류소 번호
-  final String regionName;
-  final int stationId;      // 정류소 id
-  final String stationName; // 정류소 이름
-  final double x;
-  final double y;
-  final int distance;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  BusStationEntity({
-    required this.centerYn,
-    required this.mobileNo,
-    required this.regionName,
-    required this.stationId,
-    required this.stationName,
-    required this.x,
-    required this.y,
-    required this.distance,
-  });
+part 'busstation_entity.freezed.dart';
+part 'busstation_entity.g.dart';
 
-  factory BusStationEntity.fromJson(Map<String, dynamic> json) {
-    return BusStationEntity(
-      centerYn: json['centerYn'],
-      mobileNo: json['mobileNo'],
-      regionName: json['regionName'],
-      stationId: json['stationId'],
-      stationName: json['stationName'],
-      x: json['x'],
-      y: json['y'],
-      distance: json['distance'],
-    );
-  }
+@freezed
+sealed class BusStationEntity with _$BusStationEntity {
+  const factory BusStationEntity({
+    required String centerYn,
+    required String mobileNo,    // 정류소 번호
+    required String regionName,
+    required int stationId,      // 정류소 id
+    required String stationName, // 정류소 이름
+    required double x,
+    required double y,
+    required int distance,
+  }) = _BusStationEntity;
+
+  factory BusStationEntity.fromJson(Map<String, dynamic> json) =>
+      _$BusStationEntityFromJson(json);
 }

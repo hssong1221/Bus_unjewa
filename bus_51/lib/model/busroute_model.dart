@@ -1,21 +1,21 @@
-class BusRouteModel {
-  final String regionName;
-  final int routeDestId;
-  final String routeDestName;
-  final int routeId;
-  final String routeName;
-  final int routeTypeCd;
-  final String routeTypeName;
-  final int staOrder;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  BusRouteModel({
-    required this.regionName,
-    required this.routeDestId,
-    required this.routeDestName,
-    required this.routeId,
-    required this.routeName,
-    required this.routeTypeCd,
-    required this.routeTypeName,
-    required this.staOrder,
-  });
+part 'busroute_model.freezed.dart';
+part 'busroute_model.g.dart';
+
+@freezed
+sealed class BusRouteModel with _$BusRouteModel {
+  const factory BusRouteModel({
+    required String regionName,
+    required int routeDestId,
+    required String routeDestName,
+    required int routeId,
+    required String routeName,
+    required int routeTypeCd,
+    required String routeTypeName,
+    required int staOrder,
+  }) = _BusRouteModel;
+
+  factory BusRouteModel.fromJson(Map<String, dynamic> json) =>
+      _$BusRouteModelFromJson(json);
 }

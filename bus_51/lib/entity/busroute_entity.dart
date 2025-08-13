@@ -1,34 +1,21 @@
-class BusRouteEntity {
-  final String regionName;
-  final int routeDestId;
-  final String routeDestName;
-  final int routeId;
-  final String routeName;
-  final int routeTypeCd;
-  final String routeTypeName;
-  final int staOrder;
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  BusRouteEntity({
-    required this.regionName,
-    required this.routeDestId,
-    required this.routeDestName,
-    required this.routeId,
-    required this.routeName,
-    required this.routeTypeCd,
-    required this.routeTypeName,
-    required this.staOrder,
-  });
+part 'busroute_entity.freezed.dart';
+part 'busroute_entity.g.dart';
 
-  factory BusRouteEntity.fromJson(Map<String, dynamic> json) {
-    return BusRouteEntity(
-      regionName: json['regionName'],
-      routeDestId: json['routeDestId'],
-      routeDestName: json['routeDestName'],
-      routeId: json['routeId'],
-      routeName: json['routeName'].toString(),
-      routeTypeCd: json['routeTypeCd'],
-      routeTypeName: json['routeTypeName'],
-      staOrder: json['staOrder'],
-    );
-  }
+@freezed
+sealed class BusRouteEntity with _$BusRouteEntity {
+  const factory BusRouteEntity({
+    required String regionName,
+    required int routeDestId,
+    required String routeDestName,
+    required int routeId,
+    required String routeName,
+    required int routeTypeCd,
+    required String routeTypeName,
+    required int staOrder,
+  }) = _BusRouteEntity;
+
+  factory BusRouteEntity.fromJson(Map<String, dynamic> json) =>
+      _$BusRouteEntityFromJson(json);
 }

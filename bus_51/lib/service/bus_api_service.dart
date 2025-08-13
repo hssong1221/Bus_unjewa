@@ -38,25 +38,19 @@ class BusApiService {
 
   /// 내 주변 500미터 버스 정류장 상세
   Future<List<BusStationModel>> getBusStationList({required String x, required String y}) async {
-    //final path = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
-    final path = "${AppConstants.apiBaseUrl}/getBusStationAroundListv2";
+    final primaryPath = "${AppConstants.apiBaseUrl}/getBusStationAroundListv2";
+    final fallbackPath = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
 
     try {
       final response = await _dio.get(
-        path,
+        primaryPath,
         options: Options(
           contentType: Headers.jsonContentType,
         ),
         queryParameters: {
           "lon" : x,
           "lat" : y,
-        }
-        /*queryParameters: {
-          "serviceKey": serviceKey,
-          "x": 1,
-          "y": y,
-          "format": format,
-        },*/
+        },
       );
 
       if (response.statusCode == 200) {
@@ -68,22 +62,45 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
+      // 첫 번째 요청 실패시 fallback URL로 재시도
+      try {
+        final fallbackResponse = await _dio.get(
+          fallbackPath,
+          options: Options(
+            contentType: Headers.jsonContentType,
+          ),
+          queryParameters: {
+            "lon" : x,
+            "lat" : y,
+          },
+        );
+
+        if (fallbackResponse.statusCode == 200) {
+          List<dynamic> resultList = makeListForm(fallbackResponse.data["response"]["msgBody"]["busStationAroundList"]);
+          var entitiesList = resultList.map((json) => BusStationEntity.fromJson(json)).toList();
+          var modelList = BusStationMapper.fromEntityList(entitiesList);
+          return modelList;
+        } else {
+          throw ApiException(error: fallbackResponse.data["error"], message: fallbackResponse.data["message"], statusCode: fallbackResponse.statusCode);
+        }
+      } on DioException catch (fallbackError) {
+        if (fallbackError.response != null) {
+          throw ApiException(error: fallbackError.response?.statusMessage ?? 'Unknown error', message: fallbackError.response!.data["message"], statusCode: fallbackError.response!.statusCode);
+        } else {
+          throw ApiException(error: fallbackError.message);
+        }
       }
     }
   }
 
   /// 버스 정류장을 지나가는 노선
   Future<List<BusRouteModel>> getBusRouteList({required String stationId}) async {
-    //final path = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
-    final path = "${AppConstants.apiBaseUrl}/getBusStationViaRouteListv2";
+    final primaryPath = "${AppConstants.apiBaseUrl}/getBusStationViaRouteListv2";
+    final fallbackPath = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
 
     try {
       final response = await _dio.get(
-        path,
+        primaryPath,
         options: Options(
           contentType: Headers.jsonContentType,
         ),
@@ -101,21 +118,44 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
+      // 첫 번째 요청 실패시 fallback URL로 재시도
+      try {
+        final fallbackResponse = await _dio.get(
+          fallbackPath,
+          options: Options(
+            contentType: Headers.jsonContentType,
+          ),
+          queryParameters: {
+            "stationId": stationId,
+          },
+        );
+
+        if (fallbackResponse.statusCode == 200) {
+          List<dynamic> resultList = makeListForm(fallbackResponse.data["response"]["msgBody"]["busRouteList"]);
+          var entitiesList = resultList.map((json) => BusRouteEntity.fromJson(json)).toList();
+          var modelList = BusRouteMapper.fromEntityList(entitiesList);
+          return modelList;
+        } else {
+          throw ApiException(error: fallbackResponse.data["error"], message: fallbackResponse.data["message"], statusCode: fallbackResponse.statusCode);
+        }
+      } on DioException catch (fallbackError) {
+        if (fallbackError.response != null) {
+          throw ApiException(error: fallbackError.response?.statusMessage ?? 'Unknown error', message: fallbackError.response!.data["message"], statusCode: fallbackError.response!.statusCode);
+        } else {
+          throw ApiException(error: fallbackError.message);
+        }
       }
     }
   }
 
   /// 버스 노선이 지나가는 정류장 리스트
   Future<List<BusRouteStationModel>> getBusRouteStationList({required String routeId}) async {
-    //final path = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
-    final path = "${AppConstants.apiBaseUrl}/getBusRouteStationListv2";
+    final primaryPath = "${AppConstants.apiBaseUrl}/getBusRouteStationListv2";
+    final fallbackPath = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
+
     try {
       final response = await _dio.get(
-        path,
+        primaryPath,
         options: Options(
           contentType: Headers.jsonContentType,
         ),
@@ -133,21 +173,44 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
+      // 첫 번째 요청 실패시 fallback URL로 재시도
+      try {
+        final fallbackResponse = await _dio.get(
+          fallbackPath,
+          options: Options(
+            contentType: Headers.jsonContentType,
+          ),
+          queryParameters: {
+            "routeId": routeId,
+          },
+        );
+
+        if (fallbackResponse.statusCode == 200) {
+          List<dynamic> resultList = makeListForm(fallbackResponse.data["response"]["msgBody"]["busRouteStationList"]);
+          var entitiesList = resultList.map((json) => BusRouteStationEntity.fromJson(json)).toList();
+          var modelList = BusRouteStationMapper.fromEntityList(entitiesList);
+          return modelList;
+        } else {
+          throw ApiException(error: fallbackResponse.data["error"], message: fallbackResponse.data["message"], statusCode: fallbackResponse.statusCode);
+        }
+      } on DioException catch (fallbackError) {
+        if (fallbackError.response != null) {
+          throw ApiException(error: fallbackError.response?.statusMessage ?? 'Unknown error', message: fallbackError.response!.data["message"], statusCode: fallbackError.response!.statusCode);
+        } else {
+          throw ApiException(error: fallbackError.message);
+        }
       }
     }
   }
 
   // 유저가 선택한 정류장과 노선에 맞는 버스 도착정보 가져오기
   Future<BusArrivalModel> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
-    //final path = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
-    final path = "${AppConstants.apiBaseUrl}/getBusArrivalItemv2";
+    final primaryPath = "${AppConstants.apiBaseUrl}/getBusArrivalItemv2";
+    final fallbackPath = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
+
     try {
       final response = await _dio.get(
-        path,
+        primaryPath,
         options: Options(
           contentType: Headers.jsonContentType,
         ),
@@ -168,10 +231,35 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
+      // 첫 번째 요청 실패시 fallback URL로 재시도
+      try {
+        final fallbackResponse = await _dio.get(
+          fallbackPath,
+          options: Options(
+            contentType: Headers.jsonContentType,
+          ),
+          queryParameters: {
+            "stationId": stationId,
+            "routeId": routeId,
+            "staOrder": staOrder,
+          },
+        );
+
+        if (fallbackResponse.statusCode == 200) {
+          List<dynamic> resultList = makeListForm(fallbackResponse.data["response"]["msgBody"]["busArrivalItem"]);
+          var entitiesList = resultList.map((json) => BusArrivalEntity.fromJson(json)).toList();
+          // 버스 도착정보는 항상 한개임
+          var model = BusArrivalMapper.fromEntity(entitiesList[0]);
+          return model;
+        } else {
+          throw ApiException(error: fallbackResponse.data["error"], message: fallbackResponse.data["message"], statusCode: fallbackResponse.statusCode);
+        }
+      } on DioException catch (fallbackError) {
+        if (fallbackError.response != null) {
+          throw ApiException(error: fallbackError.response?.statusMessage ?? 'Unknown error', message: fallbackError.response!.data["message"], statusCode: fallbackError.response!.statusCode);
+        } else {
+          throw ApiException(error: fallbackError.message);
+        }
       }
     }
   }
