@@ -22,8 +22,10 @@ class _ExplainScreenViewState extends State<ExplainScreenView> {
   void initState() {
     // TODO: implement initState
     super.initState();
-    final readProvider = context.read<BusProvider>();
-    readProvider.testConnect(item_id: "1", q: "hello world");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final readProvider = context.read<BusProvider>();
+      readProvider.testConnect(item_id: "1", q: "hello world");
+    });
   }
   @override
   Widget build(BuildContext context) {

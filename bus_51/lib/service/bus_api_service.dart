@@ -21,12 +21,8 @@ import 'package:xml/xml.dart' as xml;
 class BusApiService {
   final Dio _dio = DioSingleton.getInstance();
 
-  final String serviceKey = "WmieO1vfcMEfgrDc60v7veixKyQjCbrPc0KzbaNiQ8XsXa5hnl8t2MuYSdVejeKgO4+xLVLV54GABvOBnndYIw==";
-  final String format = "json";
-
-  String stationId = "226000060";
-  String routeId = "208000017";
-  String staOrder = "14";
+  /*final String serviceKey = "";
+  final String format = "json";*/
 
   List<dynamic> makeListForm(dynamic raw) {
     List<dynamic> resultList;
@@ -42,7 +38,9 @@ class BusApiService {
 
   /// 내 주변 500미터 버스 정류장 상세
   Future<List<BusStationModel>> getBusStationList({required String x, required String y}) async {
-    final path = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
+    //final path = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
+    final path = "${AppConstants.apiBaseUrl}/getBusStationAroundListv2";
+
     try {
       final response = await _dio.get(
         path,
@@ -50,11 +48,15 @@ class BusApiService {
           contentType: Headers.jsonContentType,
         ),
         queryParameters: {
+          "lon" : x,
+          "lat" : y,
+        }
+        /*queryParameters: {
           "serviceKey": serviceKey,
-          "x": x,
+          "x": 1,
           "y": y,
           "format": format,
-        },
+        },*/
       );
 
       if (response.statusCode == 200) {
@@ -76,7 +78,9 @@ class BusApiService {
 
   /// 버스 정류장을 지나가는 노선
   Future<List<BusRouteModel>> getBusRouteList({required String stationId}) async {
-    final path = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
+    //final path = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
+    final path = "${AppConstants.apiBaseUrl}/getBusStationViaRouteListv2";
+
     try {
       final response = await _dio.get(
         path,
@@ -84,9 +88,7 @@ class BusApiService {
           contentType: Headers.jsonContentType,
         ),
         queryParameters: {
-          "serviceKey": serviceKey,
           "stationId": stationId,
-          "format": format,
         },
       );
 
@@ -109,7 +111,8 @@ class BusApiService {
 
   /// 버스 노선이 지나가는 정류장 리스트
   Future<List<BusRouteStationModel>> getBusRouteStationList({required String routeId}) async {
-    final path = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
+    //final path = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
+    final path = "${AppConstants.apiBaseUrl}/getBusRouteStationListv2";
     try {
       final response = await _dio.get(
         path,
@@ -117,9 +120,7 @@ class BusApiService {
           contentType: Headers.jsonContentType,
         ),
         queryParameters: {
-          "serviceKey": serviceKey,
           "routeId": routeId,
-          "format": format,
         },
       );
 
@@ -142,7 +143,8 @@ class BusApiService {
 
   // 유저가 선택한 정류장과 노선에 맞는 버스 도착정보 가져오기
   Future<BusArrivalModel> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
-    final path = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
+    //final path = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
+    final path = "${AppConstants.apiBaseUrl}/getBusArrivalItemv2";
     try {
       final response = await _dio.get(
         path,
@@ -150,11 +152,9 @@ class BusApiService {
           contentType: Headers.jsonContentType,
         ),
         queryParameters: {
-          "serviceKey": serviceKey,
           "stationId": stationId,
           "routeId": routeId,
           "staOrder": staOrder,
-          "format": format,
         },
       );
 
@@ -176,9 +176,11 @@ class BusApiService {
     }
   }
 
-  // 유저가 선택한 정류장과 노선에 맞는 버스 도착정보 가져오기
+
+
+  // 테스트
   Future<void> testConnect({required String item_id, required String q}) async {
-    final path = "http://168.138.54.156:8000/items/$item_id";
+    final path = "${AppConstants.apiBaseUrl}/items/$item_id";
     try {
       final response = await _dio.get(
         path,
@@ -192,7 +194,6 @@ class BusApiService {
 
       if (response.statusCode == 200) {
         var result = response.data;
-        debugPrint("${result.toString()}");
       } else {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
@@ -205,15 +206,13 @@ class BusApiService {
     }
   }
 
-
-
   //xml 사용해서 만든 옛날 버전
   Future<Map<String, String>> getBusData() async {
     final parameter = {
-      'serviceKey': serviceKey,
-      'stationId': stationId,
-      'routeId': routeId,
-      'staOrder': staOrder,
+      'serviceKey': "",
+      'stationId': "",
+      'routeId': "",
+      'staOrder': "",
     };
 
     final uri = Uri.https('apis.data.go.kr', '/6410000/busarrivalservice/getBusArrivalItem', parameter);

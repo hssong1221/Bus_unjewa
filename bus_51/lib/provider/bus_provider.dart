@@ -206,10 +206,10 @@ class BusProvider extends ChangeNotifier {
   // 서버 연결 테스트
   Future<void> testConnect({required String item_id, required String q}) async {
     try {
-        await _busApiServices.testConnect(
+        /*await _busApiServices.testConnect(
         item_id: item_id,
         q: q,
-      );
+      );*/
     } on ApiException catch (e) {
       debugPrint(e.toString());
     } finally {

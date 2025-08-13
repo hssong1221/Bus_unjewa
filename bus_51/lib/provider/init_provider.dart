@@ -1,12 +1,17 @@
+import 'package:bus_51/screen/FNMapPage.dart';
 import 'package:bus_51/screen/init_setting_screen/explain_screen.dart';
 import 'package:bus_51/screen/init_setting_screen/favorite_setting_screen.dart';
 import 'package:bus_51/screen/init_setting_screen/route_setting_screen.dart';
 import 'package:bus_51/screen/init_setting_screen/station_setting_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 class InitProvider with ChangeNotifier {
 
+  var stream =  Stream<NaverMapViewOptions>.value(NaverMapViewOptions());
+
   final List<Widget> _views = [
+    //const FNMapPage(),
     const ExplainScreenView(),
     const StationSettingView(),
     const RouteSettingView(),

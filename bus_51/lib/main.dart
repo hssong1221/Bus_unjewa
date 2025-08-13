@@ -8,6 +8,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:get_it/get_it.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
@@ -48,14 +49,28 @@ void main() async {
 
   await GetStorage.init();
 
+  await FlutterNaverMap().init(
+      clientId:"573iatcw1j",
+      onAuthFailed: (ex) =>
+      switch (ex) {
+        NQuotaExceededException(:final message) =>
+            print("사용량 초과 (message: $message)"),
+        NUnauthorizedClientException() ||
+        NClientUnspecifiedException() ||
+        NAnotherAuthFailedException() =>
+            print("인증 실패: $ex"),
+      },
+  );
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => BusProvider(
-            getIt<BusApiService>(),
-            getIt<StorageService>(),
-          ),
+          create: (_) =>
+              BusProvider(
+                getIt<BusApiService>(),
+                getIt<StorageService>(),
+              ),
         ),
       ],
       child: const MyApp(),
