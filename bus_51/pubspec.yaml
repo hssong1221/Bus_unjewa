@@ -61,6 +61,8 @@ dependencies:
   # TextAutoSize
   auto_size_text: ^3.0.0
 
+  # flutter_naver_map:
+  flutter_naver_map: ^1.4.1
 
 dev_dependencies:
   flutter_test:
