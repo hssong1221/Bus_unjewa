@@ -1,4 +1,3 @@
-import 'package:bus_51/screen/FNMapPage.dart';
 import 'package:bus_51/screen/init_setting_screen/explain_screen.dart';
 import 'package:bus_51/screen/init_setting_screen/favorite_setting_screen.dart';
 import 'package:bus_51/screen/init_setting_screen/route_setting_screen.dart';

@@ -2,11 +2,7 @@ import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
-import 'package:bus_51/theme/colors.dart';
-import 'package:bus_51/theme/custom_text_style.dart';
-import 'package:bus_51/theme/images.dart';
 import 'package:bus_51/utils/bus_color.dart';
-import 'package:bus_51/widgets/base_appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -21,100 +17,313 @@ class FavoriteSettingView extends StatefulWidget {
   State<FavoriteSettingView> createState() => _FavoriteSettingViewState();
 }
 
-class _FavoriteSettingViewState extends State<FavoriteSettingView> {
+class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _slideController;
+  late Animation<double> _fadeAnimation;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
+
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _slideController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0.0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _slideController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    _fadeController.forward();
+    _slideController.forward();
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await context.read<BusProvider>().getRouteStationList();
     });
   }
 
   @override
+  void dispose() {
+    _fadeController.dispose();
+    _slideController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final readBusProvider = context.read<BusProvider>();
     final watchBusProvider = context.watch<BusProvider>();
     final readInitProvider = context.read<InitProvider>();
 
     return Scaffold(
-      appBar: BaseAppBar(
-        title: "버스 저장",
-        isBackButtonCustom: true,
-        onPressed_notRouter: () {
-          readInitProvider.prevAccountView();
-        },
-      ),
+      backgroundColor: colorScheme.surface,
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              spacing: 15,
-              children: [
-                Text(
-                  watchBusProvider.selectedRouteModel?.routeName ?? "버스 노선",
-                  style: context.textStyle.titleBoldLg.copyWith(
-                    color: BusColor().setColor(watchBusProvider.selectedRouteModel!.routeTypeCd),
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: SlideTransition(
+            position: _slideAnimation,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Header Section
+                  Container(
+                    padding: const EdgeInsets.only(bottom: 32),
+                    child: Column(
+                      children: [
+                        Text(
+                          '설정 완료',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '선택하신 노선 정보를 확인해주세요',
+                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                color: colorScheme.onSurface.withValues(alpha: 0.7),
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox.shrink(),
-                Text(watchBusProvider.prevStationModel?.stationName ?? "전 전류장"),
-                Image.asset(Images.iconArrowDown, color: CustomColors.commonBlack, scale: 3),
-                Text("${watchBusProvider.curStationModel?.stationName} (선택한 정류장)", style: context.textStyle.bodyBoldLg),
-                Image.asset(Images.iconArrowDown, color: CustomColors.commonBlack, scale: 3),
-                Text(watchBusProvider.nextStationModel?.stationName ?? "다음 정류장"),
-                Image.asset(Images.iconArrowDown, color: CustomColors.commonBlack, scale: 3),
-                Image.asset(Images.iconArrowDown, color: CustomColors.commonBlack, scale: 3),
-                Image.asset(Images.iconArrowDown, color: CustomColors.commonBlack, scale: 3),
-                Text(watchBusProvider.selectedRouteModel?.routeDestName ?? "최종 목적지"),
-                const Text("방향이 맞으면 저장버튼을 눌러주세요"),
-                OutlinedButton(
-                  onPressed: () async {
-                    String routeName = readBusProvider.selectedRouteModel!.routeName;
-                    int stationId = readBusProvider.curStationModel!.stationId;
-                    int routeId = readBusProvider.selectedRouteModel!.routeId;
-                    int staOrder = readBusProvider.curStationModel!.stationSeq;
-                    int routeTypeCd = readBusProvider.selectedRouteModel!.routeTypeCd;
 
-                    debugPrint("$routeName $stationId $routeId $staOrder $routeTypeCd");
+                  // Route Information Card
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: colorScheme.outline.withValues(alpha: 0.2),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.1),
+                          blurRadius: 16,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Route Number
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
+                          decoration: BoxDecoration(
+                            color: BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            watchBusProvider.selectedRouteModel?.routeName ?? "버스 노선",
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                  color: BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                          ),
+                        ),
 
-                    final order = UserSaveModel(
-                      routeName: routeName,
-                      stationId: stationId,
-                      routeId: routeId,
-                      staOrder: staOrder,
-                      routeTypeCd: routeTypeCd,
-                    );
+                        const SizedBox(height: 32),
 
-                    await readBusProvider.saveUserDataList(order);
-                    await context.pushNamed(BusListScreen.routeName);
-                  },
-                  child: const Text("save"),
-                ),
-                /*Row(
-                  children: [
-                    OutlinedButton(
+                        // Route Path
+                        Column(
+                          children: [
+                            // Previous Station
+                            _buildStationItem(
+                              context,
+                              watchBusProvider.prevStationModel?.stationName ?? "이전 정류장",
+                              colorScheme.onSurface.withValues(alpha: 0.5),
+                              Icons.radio_button_unchecked,
+                              false,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Current Station (Selected)
+                            _buildStationItem(
+                              context,
+                              "${watchBusProvider.curStationModel?.stationName ?? "선택한 정류장"}",
+                              colorScheme.primary,
+                              Icons.my_location,
+                              true,
+                            ),
+
+                            const SizedBox(height: 16),
+
+                            // Next Station
+                            _buildStationItem(
+                              context,
+                              watchBusProvider.nextStationModel?.stationName ?? "다음 정류장",
+                              colorScheme.onSurface.withValues(alpha: 0.5),
+                              Icons.radio_button_unchecked,
+                              false,
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Dots indicating more stations
+                            Column(
+                              children: List.generate(
+                                3,
+                                (index) => Container(
+                                  margin: const EdgeInsets.symmetric(vertical: 4),
+                                  width: 4,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.onSurface.withValues(alpha: 0.3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 24),
+
+                            // Destination
+                            _buildStationItem(
+                              context,
+                              watchBusProvider.selectedRouteModel?.routeDestName ?? "최종 목적지",
+                              colorScheme.secondary,
+                              Icons.flag,
+                              false,
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // Confirmation Text
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '방향이 맞으면 저장 버튼을 눌러주세요',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: colorScheme.onPrimaryContainer,
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const Spacer(),
+
+                  // Save Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: FilledButton.icon(
                       onPressed: () async {
-                        var model = readBusProvider.loadUserDataList();
-                        debugPrint(model[0].routeName.toString());
-                        debugPrint(model[0].staOrder.toString());
-                        debugPrint(model[0].stationId.toString());
-                        debugPrint(model[0].routeId.toString());
+                        String routeName = readBusProvider.selectedRouteModel!.routeName;
+                        int stationId = readBusProvider.curStationModel!.stationId;
+                        int routeId = readBusProvider.selectedRouteModel!.routeId;
+                        int staOrder = readBusProvider.curStationModel!.stationSeq;
+                        int routeTypeCd = readBusProvider.selectedRouteModel!.routeTypeCd;
+
+                        debugPrint("$routeName $stationId $routeId $staOrder $routeTypeCd");
+
+                        final order = UserSaveModel(
+                          routeName: routeName,
+                          stationId: stationId,
+                          routeId: routeId,
+                          staOrder: staOrder,
+                          routeTypeCd: routeTypeCd,
+                        );
+
+                        await readBusProvider.saveUserDataList(order);
+                        await context.pushNamed(BusListScreen.routeName);
                       },
-                      child: const Text("load"),
+                      icon: const Icon(Icons.bookmark_add),
+                      label: const Text(
+                        '저장하고 시작하기',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
                     ),
-                    OutlinedButton(
-                      onPressed: () {
-                        readBusProvider.deleteAllData();
-                      },
-                      child: const Text("delete"),
-                    ),
-                  ],
-                )*/
-              ],
+                  ),
+
+                  const SizedBox(height: 16),
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildStationItem(BuildContext context, String stationName, Color color, IconData icon, bool isSelected) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+        border: isSelected ? Border.all(color: color.withValues(alpha: 0.3)) : null,
+      ),
+      child: Row(
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: isSelected ? 24 : 20,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              stationName,
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                    color: color,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

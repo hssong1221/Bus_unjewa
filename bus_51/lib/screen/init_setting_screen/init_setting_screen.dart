@@ -35,10 +35,36 @@ class InitSettingView extends StatefulWidget {
   State<InitSettingView> createState() => _InitSettingViewState();
 }
 
-class _InitSettingViewState extends State<InitSettingView> {
+class _InitSettingViewState extends State<InitSettingView> with TickerProviderStateMixin {
+  late AnimationController _transitionController;
+  late Animation<Offset> _slideAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _transitionController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(1.0, 0.0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _transitionController,
+      curve: Curves.easeInOutCubic,
+    ));
+    _transitionController.forward();
+  }
+
+  @override
+  void dispose() {
+    _transitionController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final watchProvider = context.watch<InitProvider>();
 
     return PopScope(
@@ -47,7 +73,82 @@ class _InitSettingViewState extends State<InitSettingView> {
           context.pop();
         }
       },
-      child: watchProvider.curView,
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                colorScheme.primary.withValues(alpha: 0.05),
+                colorScheme.secondary.withValues(alpha: 0.03),
+                colorScheme.surface,
+              ],
+            ),
+          ),
+          child: Column(
+            children: [
+              // Progress Indicator
+              SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: watchProvider.curIdx > 0 
+                                ? () {
+                                    _transitionController.reset();
+                                    watchProvider.prevAccountView();
+                                    _transitionController.forward();
+                                  }
+                                : null,
+                            icon: Icon(
+                              Icons.arrow_back,
+                              color: watchProvider.curIdx > 0 
+                                  ? colorScheme.onSurface 
+                                  : colorScheme.onSurface.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          Expanded(
+                            child: Container(
+                              height: 6,
+                              margin: const EdgeInsets.symmetric(horizontal: 16),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(3),
+                                child: LinearProgressIndicator(
+                                  value: (watchProvider.curIdx + 1) / 4,
+                                  backgroundColor: colorScheme.surfaceVariant,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    colorScheme.primary,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            '${watchProvider.curIdx + 1}/4',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurface.withValues(alpha: 0.6),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                  ),
+                ),
+              ),
+              // Content Area
+              Expanded(
+                child: SlideTransition(
+                  position: _slideAnimation,
+                  child: watchProvider.curView,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

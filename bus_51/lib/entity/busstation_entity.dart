@@ -1,7 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'busstation_entity.freezed.dart';
-part 'busstation_entity.g.dart';
 
 @Freezed(fromJson: false)
 sealed class BusStationEntity with _$BusStationEntity {

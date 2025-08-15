@@ -1,11 +1,7 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
-import 'package:bus_51/theme/colors.dart';
-import 'package:bus_51/theme/custom_text_style.dart';
-import 'package:bus_51/theme/images.dart';
 import 'package:bus_51/utils/bus_color.dart';
-import 'package:bus_51/widgets/base_appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -35,83 +31,351 @@ class BusListView extends StatefulWidget {
   State<BusListView> createState() => _BusListViewState();
 }
 
-class _BusListViewState extends State<BusListView> {
+class _BusListViewState extends State<BusListView> with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
+  
   @override
   void initState() {
     super.initState();
+    
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _fadeController.forward();
+  }
+  
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final readProvider = context.read<BusProvider>();
     final watchProvider = context.watch<BusProvider>();
 
     var userSaveModel = watchProvider.loadUserDataList();
 
     return Scaffold(
-      appBar: BaseAppBar(
-        title: "버스 언제와",
-        actions: [
-          InkWell(
-            child: Image.asset(
-              Images.iconPlus,
-              width: 24,
-              height: 24,
+      backgroundColor: colorScheme.surface,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(alpha: 0.05),
+              colorScheme.surface,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Section
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Bus 언제와',
+                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '저장된 노선 목록',
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: IconButton(
+                          onPressed: () {
+                            context.pushNamed(InitSettingScreen.routeName);
+                          },
+                          icon: Icon(
+                            Icons.add,
+                            color: colorScheme.onPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Routes List
+                  Expanded(
+                    child: userSaveModel.isEmpty
+                        ? _buildEmptyState(context, colorScheme)
+                        : ListView.builder(
+                            physics: const BouncingScrollPhysics(),
+                            itemCount: userSaveModel.length,
+                            itemBuilder: (context, index) {
+                              var item = userSaveModel[index];
+                              return TweenAnimationBuilder<double>(
+                                duration: Duration(milliseconds: 300 + (index * 100)),
+                                tween: Tween(begin: 0.0, end: 1.0),
+                                builder: (context, value, child) {
+                                  return Transform.translate(
+                                    offset: Offset(0.0, 20 * (1 - value)),
+                                    child: Opacity(
+                                      opacity: value,
+                                      child: child,
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 16),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(16),
+                                      onTap: () {
+                                        readProvider.userDataIdx = index;
+                                        context.pushNamed(BusMainScreen.routeName);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.all(20),
+                                        decoration: BoxDecoration(
+                                          color: colorScheme.surface,
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: BusColor().setColor(item.routeTypeCd).withOpacity(0.3),
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: colorScheme.shadow.withValues(alpha: 0.08),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            // Bus Icon
+                                            Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: BusColor().setColor(item.routeTypeCd).withOpacity(0.1),
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: Icon(
+                                                Icons.directions_bus,
+                                                color: BusColor().setColor(item.routeTypeCd),
+                                                size: 24,
+                                              ),
+                                            ),
+                                            
+                                            const SizedBox(width: 16),
+                                            
+                                            // Route Info
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      vertical: 6,
+                                                      horizontal: 12,
+                                                    ),
+                                                    decoration: BoxDecoration(
+                                                      color: BusColor().setColor(item.routeTypeCd).withOpacity(0.1),
+                                                      borderRadius: BorderRadius.circular(8),
+                                                    ),
+                                                    child: Text(
+                                                      item.routeName.toString(),
+                                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                                        color: BusColor().setColor(item.routeTypeCd),
+                                                        fontWeight: FontWeight.bold,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    '노선 ID: ${item.routeId}',
+                                                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            
+                                            // Arrow
+                                            Icon(
+                                              Icons.arrow_forward_ios,
+                                              color: colorScheme.onSurface.withValues(alpha: 0.3),
+                                              size: 16,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                  
+                  // Delete All Button
+                  if (userSaveModel.isNotEmpty) ...[
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          _showDeleteConfirmDialog(context, readProvider);
+                        },
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text(
+                          '전체 삭제',
+                          style: TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: colorScheme.error,
+                          side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            onTap: () {
-              context.pushNamed(InitSettingScreen.routeName);
-            },
+          ),
+        ),
+      ),
+    );
+  }
+  
+  Widget _buildEmptyState(BuildContext context, ColorScheme colorScheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.directions_bus,
+              size: 64,
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '저장된 노선이 없습니다',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '새 노선을 추가해 보세요',
+            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 32),
+          SizedBox(
+            width: 200,
+            height: 48,
+            child: FilledButton.icon(
+              onPressed: () {
+                context.pushNamed(InitSettingScreen.routeName);
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('노선 추가하기'),
+              style: FilledButton.styleFrom(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          spacing: 20,
-          children: [
-            Text(
-              "내가 저장한 노선",
-              style: context.textStyle.subtitleMediumMd,
+    );
+  }
+  
+  void _showDeleteConfirmDialog(BuildContext context, BusProvider provider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_outlined,
+                color: colorScheme.error,
+              ),
+              const SizedBox(width: 8),
+              const Text('전체 삭제'),
+            ],
+          ),
+          content: const Text('모든 저장된 노선을 삭제하시겠습니까?\n이 작업은 실행 취소할 수 없습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
             ),
-            Expanded(
-              child: ListView.builder(
-                  physics: const ClampingScrollPhysics(),
-                  itemCount: userSaveModel.length,
-                  itemBuilder: (context, index) {
-                    var item = userSaveModel[index];
-                    return InkWell(
-                      child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 10),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          spacing: 15,
-                          children: [
-                            Text(
-                              item.routeName.toString(),
-                              style: context.textStyle.titleBoldLg.copyWith(color: BusColor().setColor(item.routeTypeCd)),
-                            ),
-                          ],
-                        ),
-                      ),
-                      onTap: () {
-                        readProvider.userDataIdx = index;
-
-                        context.pushNamed(BusMainScreen.routeName);
-                      },
-                    );
-                  }),
-            ),
-            const Spacer(),
-            OutlinedButton(
+            FilledButton(
               onPressed: () {
-                readProvider.deleteAllData();
+                provider.deleteAllData();
+                Navigator.of(context).pop();
                 context.goNamed(InitSettingScreen.routeName);
               },
-              child: Text("전체 삭제"),
-            )
+              style: FilledButton.styleFrom(
+                backgroundColor: colorScheme.error,
+              ),
+              child: const Text('삭제'),
+            ),
           ],
-        ),
-      ),
+        );
+      },
     );
   }
 }

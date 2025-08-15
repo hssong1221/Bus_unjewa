@@ -1,9 +1,6 @@
-import 'package:auto_size_text/auto_size_text.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
-import 'package:bus_51/theme/images.dart';
-import 'package:bus_51/widgets/base_appbar.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -17,14 +14,56 @@ class StationSettingView extends StatefulWidget {
   State<StationSettingView> createState() => _StationSettingViewState();
 }
 
-class _StationSettingViewState extends State<StationSettingView> {
+class _StationSettingViewState extends State<StationSettingView>
+    with TickerProviderStateMixin {
+  late AnimationController _fadeController;
+  late AnimationController _listController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _listAnimation;
+
   @override
   void initState() {
     super.initState();
+    
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    
+    _listController = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeInOut,
+    ));
+    
+    _listAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _listController,
+      curve: Curves.easeOutCubic,
+    ));
+
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _fadeController.forward();
       await context.read<BusProvider>().getGPSData();
       await context.read<BusProvider>().getBusStationList();
+      _listController.forward();
     });
+  }
+
+  @override
+  void dispose() {
+    _fadeController.dispose();
+    _listController.dispose();
+    super.dispose();
   }
 
   @override
@@ -32,99 +71,366 @@ class _StationSettingViewState extends State<StationSettingView> {
     final readBusProvider = context.read<BusProvider>();
     final watchBusProvider = context.watch<BusProvider>();
     final readInitProvider = context.read<InitProvider>();
+    final colorScheme = Theme.of(context).colorScheme;
 
     var busStationModel = watchBusProvider.busStationModel;
 
     return Scaffold(
-      appBar: BaseAppBar(
-        title: "당신의 출발점",
-        actions: [
-          InkWell(
-            child: Image.asset(
-              Images.iconRefresh,
-              scale: 3,
-              width: 20,
-              height: 20,
-              color: Colors.white,
-            ),
-            onTap: () async {
-              watchBusProvider.busStationModel = null;
-              await context.read<BusProvider>().getGPSData();
-              await context.read<BusProvider>().getBusStationList();
-            },
-          )
-        ],
-      ),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              spacing: 15,
-              children: [
-                watchBusProvider.busStationModel == null
-                    ? Text(
-                        '현재 위치 500m 반경내에\n 있는 버스 정류장을 검색중입니다. \n잠시만 기다려주세요.',
-                        style: context.textStyle.subtitleBoldMd,
-                        textAlign: TextAlign.center,
-                      )
-                    : Text(
-                        '집 앞 정류장을 선택해 주세요',
-                        style: context.textStyle.subtitleBoldMd,
-                      ),
-                Row(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(alpha: 0.08),
+              colorScheme.secondary.withValues(alpha: 0.04),
+              colorScheme.surface,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header 영역
+              Container(
+                padding: const EdgeInsets.all(24.0),
+                child: Column(
                   children: [
-                    Expanded(flex: 1, child: Text("지역", style: context.textStyle.bodyMediumLg, textAlign: TextAlign.center)),
-                    Expanded(flex: 2, child: Text("정류장 이름", style: context.textStyle.bodyMediumLg, textAlign: TextAlign.center)),
-                    Expanded(
-                      flex: 2,
-                      child: AutoSizeText(
-                        "현재위치에서 떨어진 거리",
-                        style: context.textStyle.bodyMediumLg,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        minFontSize: 1,
+                    // Title Bar
+                    Row(
+                      children: [
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: IconButton.filledTonal(
+                            onPressed: () => Navigator.of(context).pop(),
+                            icon: Icon(
+                              Icons.arrow_back_rounded,
+                              color: colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: FadeTransition(
+                            opacity: _fadeAnimation,
+                            child: Text(
+                              "정류장 선택",
+                              style: context.textStyle.titleBoldLg.copyWith(
+                                color: colorScheme.onSurface,
+                                fontSize: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                        FadeTransition(
+                          opacity: _fadeAnimation,
+                          child: IconButton.filledTonal(
+                            onPressed: () async {
+                              watchBusProvider.busStationModel = null;
+                              _listController.reset();
+                              await context.read<BusProvider>().getGPSData();
+                              await context.read<BusProvider>().getBusStationList();
+                              _listController.forward();
+                            },
+                            icon: Icon(
+                              Icons.refresh_rounded,
+                              color: colorScheme.onSecondaryContainer,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Status Card
+                    FadeTransition(
+                      opacity: _fadeAnimation,
+                      child: Card.filled(
+                        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Column(
+                            children: [
+                              Icon(
+                                watchBusProvider.busStationModel == null
+                                    ? Icons.location_searching_rounded
+                                    : Icons.location_on_rounded,
+                                size: 32,
+                                color: colorScheme.primary,
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                watchBusProvider.busStationModel == null
+                                    ? '현재 위치 500m 반경 내\n버스 정류장을 검색중입니다'
+                                    : '가장 가까운 정류장을 선택해 주세요',
+                                style: context.textStyle.subtitleBoldMd.copyWith(
+                                  color: colorScheme.onSurface,
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ),
-                Expanded(
-                  child: ListView.builder(
-                      physics: const ClampingScrollPhysics(),
-                      itemCount: busStationModel?.length ?? 0,
-                      itemBuilder: (context, index) {
-                        var item = busStationModel![index];
-                        return InkWell(
-                          child: Container(
-                            height: 55,
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              spacing: 10,
-                              children: [
-                                Expanded(flex: 1, child: Text(item.regionName, textAlign: TextAlign.center)),
-                                Expanded(
-                                  flex: 2,
-                                  child: AutoSizeText(
-                                    item.stationName,
-                                    textAlign: TextAlign.center,
-                                    maxLines: 1,
-                                    minFontSize: 1,
-                                  ),
-                                ),
-                                Expanded(flex: 2, child: Text("${item.distance} m", textAlign: TextAlign.center)),
-                              ],
+              ),
+
+              // TODO: 네이버 지도 영역 (추후 구현)
+              // Container(
+              //   height: 200,
+              //   margin: const EdgeInsets.symmetric(horizontal: 24.0),
+              //   decoration: BoxDecoration(
+              //     color: colorScheme.surfaceContainer,
+              //     borderRadius: BorderRadius.circular(16),
+              //     border: Border.all(
+              //       color: colorScheme.outline.withValues(alpha: 0.2),
+              //     ),
+              //   ),
+              //   child: Center(
+              //     child: Column(
+              //       mainAxisAlignment: MainAxisAlignment.center,
+              //       children: [
+              //         Icon(
+              //           Icons.map_rounded,
+              //           size: 48,
+              //           color: colorScheme.onSurface.withValues(alpha: 0.4),
+              //         ),
+              //         const SizedBox(height: 8),
+              //         Text(
+              //           "네이버 지도 (추후 구현)",
+              //           style: TextStyle(
+              //             color: colorScheme.onSurface.withValues(alpha: 0.6),
+              //             fontSize: 14,
+              //           ),
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              // ),
+              // const SizedBox(height: 24),
+
+              // Station List
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    children: [
+                      // List Header
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 12.0,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerHighest,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
                             ),
                           ),
-                          onTap: () {
-                            readBusProvider.setSelectedStationModel(item);
-                            readInitProvider.nextAccountView();
-                          },
-                        );
-                      }),
-                )
-              ],
-            ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                flex: 1,
+                                child: Text(
+                                  "지역",
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  "정류장 이름",
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 2,
+                                child: Text(
+                                  "거리",
+                                  style: TextStyle(
+                                    color: colorScheme.onSurface,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Station List
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: colorScheme.surface,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(16),
+                              bottomRight: Radius.circular(16),
+                            ),
+                            border: Border.all(
+                              color: colorScheme.outline.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          child: busStationModel == null
+                              ? Center(
+                                  child: FadeTransition(
+                                    opacity: _fadeAnimation,
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        CircularProgressIndicator(
+                                          color: colorScheme.primary,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          "정류장을 찾고 있습니다...",
+                                          style: TextStyle(
+                                            color: colorScheme.onSurface.withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              : AnimatedBuilder(
+                                  animation: _listAnimation,
+                                  builder: (context, child) {
+                                    return ListView.builder(
+                                      physics: const ClampingScrollPhysics(),
+                                      itemCount: busStationModel.length,
+                                      itemBuilder: (context, index) {
+                                        var item = busStationModel[index];
+                                        return Transform.translate(
+                                          offset: Offset(
+                                            0,
+                                            50 * (1 - _listAnimation.value),
+                                          ),
+                                          child: Opacity(
+                                            opacity: _listAnimation.value,
+                                            child: Card.outlined(
+                                              margin: const EdgeInsets.symmetric(
+                                                horizontal: 8.0,
+                                                vertical: 4.0,
+                                              ),
+                                              child: InkWell(
+                                                borderRadius: BorderRadius.circular(12),
+                                                onTap: () {
+                                                  readBusProvider.setSelectedStationModel(item);
+                                                  readInitProvider.nextAccountView();
+                                                },
+                                                child: Container(
+                                                  padding: const EdgeInsets.all(16.0),
+                                                  child: Row(
+                                                    children: [
+                                                      Expanded(
+                                                        flex: 1,
+                                                        child: Container(
+                                                          padding: const EdgeInsets.symmetric(
+                                                            horizontal: 8,
+                                                            vertical: 4,
+                                                          ),
+                                                          decoration: BoxDecoration(
+                                                            color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                                                            borderRadius: BorderRadius.circular(8),
+                                                          ),
+                                                          child: Text(
+                                                            item.regionName,
+                                                            style: TextStyle(
+                                                              color: colorScheme.onSecondaryContainer,
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.w500,
+                                                            ),
+                                                            textAlign: TextAlign.center,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 12),
+                                                      Expanded(
+                                                        flex: 2,
+                                                        child: Column(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Text(
+                                                              item.stationName,
+                                                              style: TextStyle(
+                                                                color: colorScheme.onSurface,
+                                                                fontWeight: FontWeight.w600,
+                                                                fontSize: 15,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              "ID: ${item.mobileNo}",
+                                                              style: TextStyle(
+                                                                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                                                                fontSize: 12,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Expanded(
+                                                        flex: 2,
+                                                        child: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.end,
+                                                          children: [
+                                                            Icon(
+                                                              Icons.location_on_outlined,
+                                                              size: 16,
+                                                              color: colorScheme.primary,
+                                                            ),
+                                                            const SizedBox(width: 4),
+                                                            Text(
+                                                              "${item.distance}m",
+                                                              style: TextStyle(
+                                                                color: colorScheme.primary,
+                                                                fontWeight: FontWeight.w600,
+                                                                fontSize: 14,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              
+              // Bottom padding
+              const SizedBox(height: 24),
+            ],
           ),
         ),
       ),

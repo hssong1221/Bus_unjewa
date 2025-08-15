@@ -87,7 +87,7 @@ final ThemeData lightTheme = ThemeData(
 
   /*textSelectionTheme: TextSelectionThemeData(
     cursorColor: _darkCustomColors.primaryMain,
-    selectionColor: _darkCustomColors.primaryMain.withOpacity(0.3),
+    selectionColor: _darkCustomColors.primaryMain.withValues(alpha: 0.3),
     selectionHandleColor: _darkCustomColors.primaryMain,
   ),
   dividerColor: _darkCustomColors.dividerBorderContainer,
@@ -203,7 +203,7 @@ final ThemeData lightTheme = ThemeData(
       backgroundColor: _lightColorScheme.primary, // 초록색
       foregroundColor: _lightColorScheme.onPrimary,
       elevation: 2,
-      shadowColor: _lightColorScheme.shadow.withOpacity(0.3),
+      shadowColor: _lightColorScheme.shadow.withValues(alpha: 0.3),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
@@ -247,9 +247,9 @@ final ThemeData lightTheme = ThemeData(
   ),
   cardTheme: CardTheme(
     color: _lightColorScheme.surface,
-    surfaceTintColor: _lightColorScheme.surfaceTint.withOpacity(0.05),
+    surfaceTintColor: _lightColorScheme.surfaceTint.withValues(alpha: 0.05),
     elevation: 4,
-    shadowColor: _lightColorScheme.shadow.withOpacity(0.15),
+    shadowColor: _lightColorScheme.shadow.withValues(alpha: 0.15),
     shape: RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(16),
     ),
@@ -267,7 +267,7 @@ final ThemeData lightTheme = ThemeData(
       borderRadius: BorderRadius.circular(20),
     ),
     elevation: 2,
-    shadowColor: _lightColorScheme.shadow.withOpacity(0.1),
+    shadowColor: _lightColorScheme.shadow.withValues(alpha: 0.1),
   ),
   dividerTheme: DividerThemeData(
     color: _lightColorScheme.outlineVariant,
@@ -278,7 +278,7 @@ final ThemeData lightTheme = ThemeData(
     backgroundColor: _lightColorScheme.surface,
     indicatorColor: _lightColorScheme.primaryContainer,
     elevation: 8,
-    shadowColor: _lightColorScheme.shadow.withOpacity(0.1),
+    shadowColor: _lightColorScheme.shadow.withValues(alpha: 0.1),
     labelTextStyle: WidgetStateProperty.resolveWith((states) {
       return TextStyle(
         fontSize: 12,
