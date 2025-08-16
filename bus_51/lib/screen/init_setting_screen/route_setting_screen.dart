@@ -1,5 +1,6 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -93,15 +94,14 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                       children: [
                         Text(
                           '버스 노선 선택',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
+                          style: context.textStyle.headlineSmall.copyWith(
                             color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           '이용하실 버스 노선을 선택해주세요',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: context.textStyle.bodyLarge.copyWith(
                             color: colorScheme.onSurface.withValues(alpha: 0.7),
                           ),
                         ),
@@ -125,8 +125,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                           flex: 1,
                           child: Text(
                             "노선 번호",
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                            style: context.textStyle.labelMedium.copyWith(
                               color: colorScheme.onSurface.withValues(alpha: 0.8),
                             ),
                             textAlign: TextAlign.center,
@@ -136,8 +135,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                           flex: 1,
                           child: Text(
                             "버스 종류",
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                            style: context.textStyle.labelMedium.copyWith(
                               color: colorScheme.onSurface.withValues(alpha: 0.8),
                             ),
                             textAlign: TextAlign.center,
@@ -147,8 +145,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                           flex: 2,
                           child: Text(
                             "노선 방향",
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              fontWeight: FontWeight.w600,
+                            style: context.textStyle.labelMedium.copyWith(
                               color: colorScheme.onSurface.withValues(alpha: 0.8),
                             ),
                             textAlign: TextAlign.center,
@@ -175,7 +172,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                                 const SizedBox(height: 16),
                                 Text(
                                   '버스 노선을 불러오는 중...',
-                                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  style: context.textStyle.bodyLarge.copyWith(
                                     color: colorScheme.onSurface.withValues(alpha: 0.6),
                                   ),
                                 ),
@@ -240,9 +237,8 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                                                 ),
                                                 child: Text(
                                                   item.routeName,
-                                                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                                  style: context.textStyle.titleLarge.copyWith(
                                                     color: BusColor().setColor(item.routeTypeCd),
-                                                    fontWeight: FontWeight.bold,
                                                   ),
                                                   textAlign: TextAlign.center,
                                                 ),
@@ -262,9 +258,8 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                                                 ),
                                                 child: Text(
                                                   item.routeTypeName,
-                                                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                  style: context.textStyle.labelMedium.copyWith(
                                                     color: colorScheme.onSecondaryContainer,
-                                                    fontWeight: FontWeight.w500,
                                                   ),
                                                   textAlign: TextAlign.center,
                                                 ),
@@ -284,7 +279,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                                                   Expanded(
                                                     child: Text(
                                                       "${item.routeDestName} 방향",
-                                                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                                      style: context.textStyle.bodyMedium.copyWith(
                                                         color: colorScheme.onSurface.withValues(alpha: 0.8),
                                                       ),
                                                       overflow: TextOverflow.ellipsis,

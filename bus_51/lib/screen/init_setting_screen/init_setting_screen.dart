@@ -1,4 +1,5 @@
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -91,8 +92,9 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
             children: [
               // Progress Indicator
               SafeArea(
+                bottom: false,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  padding: const EdgeInsets.only(left: 24, right: 24, top: 4, bottom: 0),
                   child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -129,9 +131,8 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                           ),
                           Text(
                             '${watchProvider.curIdx + 1}/4',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            style: context.textStyle.labelSmall.copyWith(
                               color: colorScheme.onSurface.withValues(alpha: 0.6),
-                              fontWeight: FontWeight.w500,
                             ),
                           ),
                         ],

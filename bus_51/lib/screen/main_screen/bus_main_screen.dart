@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/timer_provider.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -168,7 +169,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 const SizedBox(height: 24),
                 Text(
                   '버스 정보를 불러오는 중...',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                  style: context.textStyle.bodyLarge.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -234,9 +235,8 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                             const SizedBox(width: 8),
                             Text(
                               item.flag == "PASS" ? "실시간 연결됨" : "연결 끊김",
-                              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              style: context.textStyle.labelSmall.copyWith(
                                 color: item.flag == "PASS" ? Colors.green : Colors.red,
-                                fontWeight: FontWeight.w500,
                               ),
                             ),
                           ],
@@ -251,9 +251,8 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                           ),
                           child: Text(
                             userModel.routeName,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: context.textStyle.headlineMedium.copyWith(
                               color: BusColor().setColor(userModel.routeTypeCd),
-                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
@@ -339,15 +338,14 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                                     children: [
                                       Text(
                                         "현재 위치",
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                        style: context.textStyle.bodySmall.copyWith(
                                           color: colorScheme.onSecondaryContainer.withValues(alpha: 0.7),
                                         ),
                                       ),
                                       Text(
                                         readProvider.selectedStationModel?.stationName ?? "선택한 정류장",
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                        style: context.textStyle.titleMedium.copyWith(
                                           color: colorScheme.onSecondaryContainer,
-                                          fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                     ],
@@ -382,9 +380,9 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                         );
                       },
                       icon: const Icon(Icons.refresh),
-                      label: const Text(
+                      label: Text(
                         "정보 새로고침",
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: context.textStyle.buttonText,
                       ),
                       style: FilledButton.styleFrom(
                         backgroundColor: colorScheme.primary,
@@ -443,15 +441,14 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
               children: [
                 Text(
                   title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  style: context.textStyle.titleMedium.copyWith(
                     color: color,
-                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   location,
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  style: context.textStyle.bodyMedium.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
                 ),
@@ -464,9 +461,8 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                   ),
                   child: Text(
                     "$time 후 도착",
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    style: context.textStyle.labelMedium.copyWith(
                       color: isNext ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

@@ -7,7 +7,7 @@ import 'package:flutter_naver_map/flutter_naver_map.dart';
 
 class InitProvider with ChangeNotifier {
 
-  var stream =  Stream<NaverMapViewOptions>.value(NaverMapViewOptions());
+  var stream =  Stream<NaverMapViewOptions>.value(const NaverMapViewOptions());
 
   final List<Widget> _views = [
     //const FNMapPage(),

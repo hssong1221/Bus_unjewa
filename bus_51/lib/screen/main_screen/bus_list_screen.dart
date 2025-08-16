@@ -1,6 +1,7 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -100,7 +101,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                           Text(
                             'Bus 언제와',
                             style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
                               color: colorScheme.onSurface,
                             ),
                           ),
@@ -216,8 +216,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                                                       item.routeName.toString(),
                                                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                                         color: BusColor().setColor(item.routeTypeCd),
-                                                        fontWeight: FontWeight.bold,
-                                                      ),
+                                                                                ),
                                                     ),
                                                   ),
                                                   const SizedBox(height: 8),
@@ -259,9 +258,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                           _showDeleteConfirmDialog(context, readProvider);
                         },
                         icon: const Icon(Icons.delete_outline),
-                        label: const Text(
+                        label: Text(
                           '전체 삭제',
-                          style: TextStyle(fontWeight: FontWeight.w500),
+                          style: context.textStyle.labelMedium,
                         ),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: colorScheme.error,
@@ -304,7 +303,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             '저장된 노선이 없습니다',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
-              fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),

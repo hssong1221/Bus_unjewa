@@ -2,6 +2,7 @@ import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -93,15 +94,14 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
                       children: [
                         Text(
                           '설정 완료',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
+                          style: context.textStyle.headlineSmall.copyWith(
                                 color: colorScheme.onSurface,
                               ),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           '선택하신 노선 정보를 확인해주세요',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: context.textStyle.bodyLarge.copyWith(
                                 color: colorScheme.onSurface.withValues(alpha: 0.7),
                               ),
                         ),
@@ -138,9 +138,8 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
                           ),
                           child: Text(
                             watchBusProvider.selectedRouteModel?.routeName ?? "버스 노선",
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: context.textStyle.headlineMedium.copyWith(
                                   color: BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0),
-                                  fontWeight: FontWeight.bold,
                                 ),
                           ),
                         ),
@@ -235,7 +234,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
                         Expanded(
                           child: Text(
                             '방향이 맞으면 저장 버튼을 눌러주세요',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            style: context.textStyle.bodyMedium.copyWith(
                                   color: colorScheme.onPrimaryContainer,
                                 ),
                           ),
@@ -272,9 +271,9 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
                         await context.pushNamed(BusListScreen.routeName);
                       },
                       icon: const Icon(Icons.bookmark_add),
-                      label: const Text(
+                      label: Text(
                         '저장하고 시작하기',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        style: context.textStyle.buttonText,
                       ),
                       style: FilledButton.styleFrom(
                         backgroundColor: colorScheme.primary,
@@ -317,7 +316,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
           Expanded(
             child: Text(
               stationName,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+              style: context.textStyle.bodyLarge.copyWith(
                     color: color,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),

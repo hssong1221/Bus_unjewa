@@ -116,9 +116,8 @@ class _StationSettingViewState extends State<StationSettingView>
                             opacity: _fadeAnimation,
                             child: Text(
                               "정류장 선택",
-                              style: context.textStyle.titleBoldLg.copyWith(
+                              style: context.textStyle.displaySmall.copyWith(
                                 color: colorScheme.onSurface,
-                                fontSize: 24,
                               ),
                             ),
                           ),
@@ -241,10 +240,8 @@ class _StationSettingViewState extends State<StationSettingView>
                                 flex: 1,
                                 child: Text(
                                   "지역",
-                                  style: TextStyle(
+                                  style: context.textStyle.labelMedium.copyWith(
                                     color: colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -253,10 +250,8 @@ class _StationSettingViewState extends State<StationSettingView>
                                 flex: 2,
                                 child: Text(
                                   "정류장 이름",
-                                  style: TextStyle(
+                                  style: context.textStyle.labelMedium.copyWith(
                                     color: colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -265,10 +260,8 @@ class _StationSettingViewState extends State<StationSettingView>
                                 flex: 2,
                                 child: Text(
                                   "거리",
-                                  style: TextStyle(
+                                  style: context.textStyle.labelMedium.copyWith(
                                     color: colorScheme.onSurface,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
                                   ),
                                   textAlign: TextAlign.center,
                                 ),
@@ -304,7 +297,7 @@ class _StationSettingViewState extends State<StationSettingView>
                                         const SizedBox(height: 16),
                                         Text(
                                           "정류장을 찾고 있습니다...",
-                                          style: TextStyle(
+                                          style: context.textStyle.bodyMedium.copyWith(
                                             color: colorScheme.onSurface.withValues(alpha: 0.7),
                                           ),
                                         ),
@@ -355,10 +348,8 @@ class _StationSettingViewState extends State<StationSettingView>
                                                           ),
                                                           child: Text(
                                                             item.regionName,
-                                                            style: TextStyle(
+                                                            style: context.textStyle.labelSmall.copyWith(
                                                               color: colorScheme.onSecondaryContainer,
-                                                              fontSize: 12,
-                                                              fontWeight: FontWeight.w500,
                                                             ),
                                                             textAlign: TextAlign.center,
                                                           ),
@@ -372,17 +363,14 @@ class _StationSettingViewState extends State<StationSettingView>
                                                           children: [
                                                             Text(
                                                               item.stationName,
-                                                              style: TextStyle(
+                                                              style: context.textStyle.subtitle.copyWith(
                                                                 color: colorScheme.onSurface,
-                                                                fontWeight: FontWeight.w600,
-                                                                fontSize: 15,
                                                               ),
                                                             ),
                                                             Text(
                                                               "ID: ${item.mobileNo}",
-                                                              style: TextStyle(
+                                                              style: context.textStyle.caption.copyWith(
                                                                 color: colorScheme.onSurface.withValues(alpha: 0.6),
-                                                                fontSize: 12,
                                                               ),
                                                             ),
                                                           ],
@@ -401,10 +389,8 @@ class _StationSettingViewState extends State<StationSettingView>
                                                             const SizedBox(width: 4),
                                                             Text(
                                                               "${item.distance}m",
-                                                              style: TextStyle(
+                                                              style: context.textStyle.labelMedium.copyWith(
                                                                 color: colorScheme.primary,
-                                                                fontWeight: FontWeight.w600,
-                                                                fontSize: 14,
                                                               ),
                                                             ),
                                                           ],
