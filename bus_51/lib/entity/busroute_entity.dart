@@ -2,6 +2,13 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'busroute_entity.freezed.dart';
 
+// --------------------------------------------------
+// 버스 노선 Entity
+// --------------------------------------------------
+// NOTE: 향후 Entity-Mapper-Model 구조를 단순화할 때
+//       이 Entity를 UI에서 직접 사용 가능
+//       (Model과 Mapper 제거 고려)
+// --------------------------------------------------
 @Freezed(fromJson: false)
 sealed class BusRouteEntity with _$BusRouteEntity {
   const factory BusRouteEntity({
