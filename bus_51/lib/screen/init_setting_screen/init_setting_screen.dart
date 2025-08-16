@@ -121,9 +121,9 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                                 borderRadius: BorderRadius.circular(3),
                                 child: LinearProgressIndicator(
                                   value: (watchProvider.curIdx + 1) / 4,
-                                  backgroundColor: colorScheme.surfaceVariant,
+                                  backgroundColor: colorScheme.surfaceContainerHighest,
                                   valueColor: AlwaysStoppedAnimation<Color>(
-                                    colorScheme.primary,
+                                    colorScheme.secondary,
                                   ),
                                 ),
                               ),

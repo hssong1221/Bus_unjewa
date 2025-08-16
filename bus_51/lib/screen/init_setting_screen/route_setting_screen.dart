@@ -82,7 +82,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
           child: SlideTransition(
             position: _slideAnimation,
             child: Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 24.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -94,7 +94,7 @@ class _RouteSettingViewState extends State<RouteSettingView> with TickerProvider
                       children: [
                         Text(
                           '버스 노선 선택',
-                          style: context.textStyle.headlineSmall.copyWith(
+                          style: context.textStyle.headlineMedium.copyWith(
                             color: colorScheme.onSurface,
                           ),
                         ),

@@ -1,6 +1,5 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
-import 'package:bus_51/theme/colors.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -89,15 +88,12 @@ class _ExplainScreenViewState extends State<ExplainScreenView> with TickerProvid
             child: Column(
               children: [
                 // App Title
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Text(
-                      "버스언제와",
-                      style: context.textStyle.appTitle.copyWith(
-                        color: colorScheme.primary,
-                      ),
+                FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: Text(
+                    "버스언제와",
+                    style: context.textStyle.appTitle.copyWith(
+                      color: colorScheme.primary,
                     ),
                   ),
                 ),
