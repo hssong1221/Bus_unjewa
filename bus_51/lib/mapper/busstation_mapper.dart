@@ -9,6 +9,8 @@ class BusStationMapper {
       stationId: entity.stationId,
       stationName: entity.stationName,
       distance: entity.distance,
+      x: entity.x,
+      y: entity.y,
     );
   }
 

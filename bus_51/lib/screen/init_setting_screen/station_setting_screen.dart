@@ -1,6 +1,8 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
+import 'package:bus_51/widget/bus_pulse_loading.dart';
+import 'package:bus_51/widget/station_map_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -147,7 +149,7 @@ class _StationSettingViewState extends State<StationSettingView>
                     Text(
                       watchBusProvider.busStationModel == null
                           ? '현재 위치 500m 반경 내\n버스 정류장을 검색중입니다'
-                          : '가장 가까운 정류장을 선택해 주세요',
+                          : '자주 이용하는 정류장을 선택해 주세요',
                       style: context.textStyle.subtitleBoldMd.copyWith(
                         color: colorScheme.onSurface,
                         height: 1.4,
@@ -240,18 +242,12 @@ class _StationSettingViewState extends State<StationSettingView>
     return Center(
       child: FadeTransition(
         opacity: _fadeAnimation,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: colorScheme.primary),
-            const SizedBox(height: 16),
-            Text(
-              "정류장을 찾고 있습니다...",
-              style: context.textStyle.bodyMedium.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-              ),
-            ),
-          ],
+        child: BusPulseLoading.primary(
+          size: 40,
+          text: "정류장을 찾고 있습니다...",
+          textStyle: context.textStyle.bodyMedium.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.7),
+          ),
         ),
       ),
     );
@@ -274,9 +270,17 @@ class _StationSettingViewState extends State<StationSettingView>
                   margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
-                    onTap: () {
-                      readBusProvider.setSelectedStationModel(item);
-                      readInitProvider.nextAccountView();
+                    onTap: () async {
+                      final shouldSelect = await showDialog<bool>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (context) => StationMapDialog(station: item),
+                      );
+                      
+                      if (shouldSelect == true) {
+                        readBusProvider.setSelectedStationModel(item);
+                        readInitProvider.nextAccountView();
+                      }
                     },
                     child: Container(
                       padding: const EdgeInsets.all(16.0),

@@ -22,8 +22,8 @@ class BusProvider extends ChangeNotifier {
   String? _latitude;
   String? _longitude;
 
-  //String? get latitude => _latitude;
-  //String?  get longitude => _longitude;
+  String? get latitude => _latitude;
+  String? get longitude => _longitude;
 
   // bus station model
   List<BusStationModel>? _busStationModel;

@@ -11,6 +11,8 @@ sealed class BusStationModel with _$BusStationModel {
     required int stationId,
     required String stationName,
     required int distance,
+    required double x,
+    required double y,
   }) = _BusStationModel;
 
   factory BusStationModel.fromJson(Map<String, dynamic> json) =>
