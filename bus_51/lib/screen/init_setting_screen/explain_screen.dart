@@ -236,7 +236,7 @@ class _ExplainScreenViewState extends State<ExplainScreenView> with TickerProvid
                 Text(
                   "시작하기",
                   style: context.textStyle.buttonText.copyWith(
-                    color: context.colors.busWhite,
+                    color: colorScheme.onSecondaryContainer,
                   ),
                 ),
                 const SizedBox(width: 8),

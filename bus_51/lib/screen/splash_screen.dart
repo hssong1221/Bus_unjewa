@@ -143,7 +143,6 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                           'Bus 언제와',
                           style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             color: colorScheme.onPrimary,
-                            fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
                           ),
                         ),
