@@ -100,17 +100,6 @@ class _StationSettingViewState extends State<StationSettingView>
                     // Title Bar
                     Row(
                       children: [
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: IconButton.filledTonal(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: Icon(
-                              Icons.arrow_back_rounded,
-                              color: colorScheme.onSecondaryContainer,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 16),
                         Expanded(
                           child: FadeTransition(
                             opacity: _fadeAnimation,
