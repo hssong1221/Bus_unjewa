@@ -154,17 +154,6 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                             letterSpacing: 0.5,
                           ),
                         ),
-                        const SizedBox(height: 48),
-                        Container(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              colorScheme.onPrimary.withValues(alpha: 0.7),
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
