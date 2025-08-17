@@ -16,12 +16,11 @@ class StationSettingView extends StatefulWidget {
   State<StationSettingView> createState() => _StationSettingViewState();
 }
 
-class _StationSettingViewState extends State<StationSettingView>
-    with TickerProviderStateMixin {
+class _StationSettingViewState extends State<StationSettingView> with TickerProviderStateMixin {
   // Animation constants
   static const Duration _fadeDuration = Duration(milliseconds: 800);
   static const Duration _listDuration = Duration(milliseconds: 1200);
-  
+
   late AnimationController _fadeController;
   late AnimationController _listController;
   late Animation<double> _fadeAnimation;
@@ -37,11 +36,11 @@ class _StationSettingViewState extends State<StationSettingView>
   void _setupAnimations() {
     _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
     _listController = AnimationController(duration: _listDuration, vsync: this);
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
-    
+
     _listAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _listController, curve: Curves.easeOutCubic),
     );
@@ -150,17 +149,13 @@ class _StationSettingViewState extends State<StationSettingView>
                 child: Column(
                   children: [
                     Icon(
-                      watchBusProvider.busStationModel == null
-                          ? Icons.location_searching_rounded
-                          : Icons.location_on_rounded,
+                      watchBusProvider.busStationModel == null ? Icons.location_searching_rounded : Icons.location_on_rounded,
                       size: 32,
                       color: colorScheme.primary,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      watchBusProvider.busStationModel == null
-                          ? '현재 위치 500m 반경 내\n버스 정류장을 검색중입니다'
-                          : '자주 이용하는 정류장을 선택해 주세요',
+                      watchBusProvider.busStationModel == null ? '현재 위치 500m 반경 내\n버스 정류장을 검색중입니다' : '자주 이용하는 정류장을 선택해 주세요',
                       style: context.textStyle.subtitleBoldMd.copyWith(
                         color: colorScheme.onSurface,
                         height: 1.4,
@@ -179,7 +174,7 @@ class _StationSettingViewState extends State<StationSettingView>
 
   Widget _buildStationList(ColorScheme colorScheme, watchBusProvider, readBusProvider, readInitProvider) {
     var busStationModel = watchBusProvider.busStationModel;
-    
+
     return Expanded(
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -238,9 +233,7 @@ class _StationSettingViewState extends State<StationSettingView>
                 elevation: 0,
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: busStationModel == null
-                      ? _buildLoadingState(colorScheme)
-                      : _buildStationListView(busStationModel, colorScheme, readBusProvider, readInitProvider),
+                  child: busStationModel == null ? _buildLoadingState(colorScheme) : _buildStationListView(busStationModel, colorScheme, readBusProvider, readInitProvider),
                 ),
               ),
             ),
@@ -288,7 +281,7 @@ class _StationSettingViewState extends State<StationSettingView>
                         barrierDismissible: false,
                         builder: (context) => StationMapDialog(station: item),
                       );
-                      
+
                       if (shouldSelect == true) {
                         readBusProvider.setSelectedStationModel(item);
                         readInitProvider.nextAccountView();
@@ -356,5 +349,4 @@ class _StationSettingViewState extends State<StationSettingView>
     await context.read<BusProvider>().getBusStationList();
     _listController.forward();
   }
-
 }
