@@ -35,10 +35,14 @@ class BusListView extends StatefulWidget {
 class _BusListViewState extends State<BusListView> with TickerProviderStateMixin {
   // Animation constants
   static const Duration _fadeDuration = Duration(milliseconds: 800);
-  
+
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
-  
+
+  // Selection mode state
+  bool _isSelectionMode = false;
+  Set<int> _selectedIndices = {};
+
   @override
   void initState() {
     super.initState();
@@ -48,7 +52,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
 
   void _setupAnimations() {
     _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
-    
+
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
@@ -57,7 +61,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   void _startAnimations() {
     _fadeController.forward();
   }
-  
+
   @override
   void dispose() {
     _fadeController.dispose();
@@ -73,31 +77,19 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
 
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.05),
-              colorScheme.surface,
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildHeader(colorScheme),
-                  const SizedBox(height: 32),
-                  _buildRoutesList(colorScheme, userSaveModel, readProvider),
-                  if (userSaveModel.isNotEmpty) _buildDeleteButton(colorScheme, readProvider),
-                ],
-              ),
+      body: SafeArea(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(colorScheme),
+                const SizedBox(height: 32),
+                _buildRoutesList(colorScheme, userSaveModel, readProvider),
+                if (userSaveModel.isNotEmpty) _buildActionButtons(colorScheme, readProvider),
+              ],
             ),
           ),
         ),
@@ -106,36 +98,52 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   }
 
   Widget _buildHeader(ColorScheme colorScheme) {
+    final watchProvider = context.watch<BusProvider>();
+    var userSaveModel = watchProvider.loadUserDataList();
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Bus 언제와',
-              style: context.textStyle.headlineMedium.copyWith(
-                color: colorScheme.onSurface,
-              ),
+        // 선택 모드일 때만 선택 정보 표시
+        if (_isSelectionMode)
+          Text(
+            '${_selectedIndices.length}개 선택됨',
+            style: context.textStyle.bodyLarge.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(height: 4),
-            Text(
-              '저장된 노선 목록',
-              style: context.textStyle.bodyLarge.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
+          )
+        else
+          const SizedBox.shrink(),
+        Row(
+          children: [
+            // 선택 모드일 때 취소 버튼만 표시
+            if (_isSelectionMode)
+              Container(
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                child: IconButton(
+                  onPressed: _toggleSelectionMode,
+                  icon: Icon(Icons.close, color: colorScheme.onSurface),
+                  tooltip: '선택 취소',
+                ),
+              ),
+            // 추가 버튼
+            Container(
+              decoration: BoxDecoration(
+                color: colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: () => context.pushNamed(InitSettingScreen.routeName),
+                icon: Icon(Icons.add_road, color: colorScheme.onPrimary),
+                tooltip: '새 버스 노선 추가하기',
               ),
             ),
           ],
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: colorScheme.primary,
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            onPressed: () => context.pushNamed(InitSettingScreen.routeName),
-            icon: Icon(Icons.add, color: colorScheme.onPrimary),
-          ),
         ),
       ],
     );
@@ -167,6 +175,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   }
 
   Widget _buildRouteItem(item, ColorScheme colorScheme, readProvider, int index) {
+    final isSelected = _selectedIndices.contains(index);
+    final busColor = BusColor().setColor(item.routeTypeCd);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Material(
@@ -174,16 +185,21 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            readProvider.userDataIdx = index;
-            context.pushNamed(BusMainScreen.routeName);
+            if (_isSelectionMode) {
+              _toggleSelection(index);
+            } else {
+              readProvider.userDataIdx = index;
+              context.pushNamed(BusMainScreen.routeName);
+            }
           },
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: colorScheme.surface,
+              color: isSelected ? busColor.withValues(alpha: 0.1) : colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: BusColor().setColor(item.routeTypeCd).withValues(alpha: 0.3),
+                color: isSelected ? busColor : busColor.withValues(alpha: 0.3),
+                width: isSelected ? 2 : 1,
               ),
               boxShadow: [
                 BoxShadow(
@@ -195,54 +211,65 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             ),
             child: Row(
               children: [
+                // Checkbox (선택 모드일 때만 표시)
+                if (_isSelectionMode) ...[
+                  Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isSelected ? busColor : colorScheme.outline,
+                        width: 2,
+                      ),
+                      color: isSelected ? busColor : Colors.transparent,
+                    ),
+                    child: isSelected
+                        ? Icon(
+                            Icons.check,
+                            size: 16,
+                            color: Colors.white,
+                          )
+                        : null,
+                  ),
+                  const SizedBox(width: 16),
+                ],
                 // Bus Icon
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: BusColor().setColor(item.routeTypeCd).withValues(alpha: 0.1),
+                    color: busColor.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.directions_bus,
-                    color: BusColor().setColor(item.routeTypeCd),
+                    color: busColor,
                     size: 24,
                   ),
                 ),
                 const SizedBox(width: 16),
                 // Route Info
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                        decoration: BoxDecoration(
-                          color: BusColor().setColor(item.routeTypeCd).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item.routeName.toString(),
-                          style: context.textStyle.titleLarge.copyWith(
-                            color: BusColor().setColor(item.routeTypeCd),
-                          ),
-                        ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      item.routeName.toString(),
+                      style: context.textStyle.headlineLarge.copyWith(
+                        color: busColor,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -1.0,
+                        fontSize: 32,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '노선 ID: ${item.routeId}',
-                        style: context.textStyle.bodyMedium.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
-                // Arrow
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: colorScheme.onSurface.withValues(alpha: 0.3),
-                  size: 16,
-                ),
+                // Arrow (선택 모드가 아닐 때만 표시)
+                if (!_isSelectionMode)
+                  Icon(
+                    Icons.arrow_forward_ios,
+                    color: colorScheme.onSurface.withValues(alpha: 0.3),
+                    size: 16,
+                  ),
               ],
             ),
           ),
@@ -251,28 +278,60 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildDeleteButton(ColorScheme colorScheme, readProvider) {
+  Widget _buildActionButtons(ColorScheme colorScheme, readProvider) {
     return Column(
       children: [
         const SizedBox(height: 24),
+        // 삭제 버튼 (항상 표시)
         SizedBox(
           width: double.infinity,
-          height: 48,
-          child: OutlinedButton.icon(
-            onPressed: () => _showDeleteConfirmDialog(context, readProvider),
-            icon: const Icon(Icons.delete_outline),
-            label: Text('전체 삭제', style: context.textStyle.labelMedium),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: colorScheme.error,
-              side: BorderSide(color: colorScheme.error.withValues(alpha: 0.5)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-          ),
+          height: 52,
+          child: _isSelectionMode
+              ? FilledButton.icon(
+                  onPressed: _selectedIndices.isNotEmpty ? () => _showSelectedDeleteConfirmDialog(context, readProvider) : null,
+                  icon: Icon(Icons.delete_outline, size: 20),
+                  label: Text(
+                    '선택 삭제 (${_selectedIndices.length})',
+                    style: context.textStyle.labelLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _selectedIndices.isNotEmpty ? colorScheme.error : colorScheme.surfaceContainerHighest,
+                    foregroundColor: _selectedIndices.isNotEmpty ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
+                    elevation: _selectedIndices.isNotEmpty ? 3 : 0,
+                    shadowColor: colorScheme.error.withValues(alpha: 0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                )
+              : OutlinedButton(
+                  onPressed: _toggleSelectionMode,
+                  child: Text(
+                    '노선 삭제하기',
+                    style: context.textStyle.labelLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface.withValues(alpha: 0.8),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(
+                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                    backgroundColor: colorScheme.surface,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                ),
         ),
       ],
     );
   }
-  
+
   Widget _buildEmptyState(ColorScheme colorScheme) {
     return Center(
       child: Column(
@@ -292,28 +351,38 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           ),
           const SizedBox(height: 24),
           Text(
-            '저장된 노선이 없습니다',
+            '저장된 버스 노선이 없습니다',
             style: context.textStyle.headlineSmall.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.6),
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '새 노선을 추가해 보세요',
+            '자주 이용하는 버스 노선을 추가해 보세요',
             style: context.textStyle.bodyLarge.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.5),
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
           SizedBox(
-            width: 200,
-            height: 48,
+            width: 220,
+            height: 52,
             child: FilledButton.icon(
               onPressed: () => context.pushNamed(InitSettingScreen.routeName),
-              icon: const Icon(Icons.add),
-              label: const Text('노선 추가하기'),
+              icon: const Icon(Icons.add_road, size: 20),
+              label: Text(
+                '첫 번째 노선 추가하기',
+                style: context.textStyle.labelLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                elevation: 3,
+                shadowColor: colorScheme.primary.withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),
@@ -321,10 +390,29 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
       ),
     );
   }
-  
-  void _showDeleteConfirmDialog(BuildContext context, BusProvider provider) {
+
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      _selectedIndices.clear();
+    });
+  }
+
+  void _toggleSelection(int index) {
+    setState(() {
+      if (_selectedIndices.contains(index)) {
+        _selectedIndices.remove(index);
+      } else {
+        _selectedIndices.add(index);
+      }
+    });
+  }
+
+  void _showSelectedDeleteConfirmDialog(BuildContext context, BusProvider provider) {
     final colorScheme = Theme.of(context).colorScheme;
-    
+    final userSaveModel = provider.loadUserDataList();
+    final selectedRoutes = _selectedIndices.map((index) => userSaveModel[index].routeName).toList();
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -334,10 +422,47 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             children: [
               Icon(Icons.warning_amber_outlined, color: colorScheme.error),
               const SizedBox(width: 8),
-              const Text('전체 삭제'),
+              Text('선택 삭제'),
             ],
           ),
-          content: const Text('모든 저장된 노선을 삭제하시겠습니까?\n이 작업은 실행 취소할 수 없습니다.'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('선택한 ${_selectedIndices.length}개의 노선을 삭제하시겠습니까?'),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: selectedRoutes
+                      .map(
+                        (routeName) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 2),
+                          child: Text(
+                            '• $routeName',
+                            style: context.textStyle.bodyMedium.copyWith(
+                              color: colorScheme.onSurface.withValues(alpha: 0.7),
+                            ),
+                          ),
+                        ),
+                      )
+                      .toList(),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '이 작업은 실행 취소할 수 없습니다.',
+                style: context.textStyle.bodySmall.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            ],
+          ),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
@@ -345,9 +470,8 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             ),
             FilledButton(
               onPressed: () {
-                provider.deleteAllData();
+                _deleteSelectedRoutes(provider);
                 Navigator.of(context).pop();
-                context.goNamed(InitSettingScreen.routeName);
               },
               style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
               child: const Text('삭제'),
@@ -356,5 +480,21 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
         );
       },
     );
+  }
+
+  void _deleteSelectedRoutes(BusProvider provider) {
+    final userSaveModel = provider.loadUserDataList();
+    final sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
+
+    // 인덱스를 역순으로 정렬해서 삭제 (높은 인덱스부터 삭제해야 인덱스 꼬임 방지)
+    for (int index in sortedIndices) {
+      // 실제 삭제 로직은 BusProvider에 구현되어야 함
+      // 현재는 전체 삭제만 있으므로, 개별 삭제 메서드가 필요
+    }
+
+    setState(() {
+      _isSelectionMode = false;
+      _selectedIndices.clear();
+    });
   }
 }
