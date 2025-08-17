@@ -186,7 +186,7 @@ class _ExplainScreenViewState extends State<ExplainScreenView> with TickerProvid
                 
                 // Main Text
                 Text(
-                  "매일 집 앞 정류장에서\n똑같은 버스를 타고\n회사를 가는 직장인들을 위한",
+                  "매일 같은 버스로\n출퇴근하는 직장을 위한",
                   style: context.textStyle.headlineMedium.copyWith(
                     color: colorScheme.onSurface,
                     height: 1.4,

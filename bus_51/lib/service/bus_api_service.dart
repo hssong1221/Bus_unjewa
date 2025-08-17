@@ -21,8 +21,9 @@ import 'package:xml/xml.dart' as xml;
 class BusApiService {
   final Dio _dio = DioSingleton.getInstance();
 
-  /*final String serviceKey = "";
-  final String format = "json";*/
+  // TODO: 서버 정상화 후 제거 필요 - 임시 공공데이터 API 직접 호출용
+  final String serviceKey = "WmieO1vfcMEfgrDc60v7veixKyQjCbrPc0KzbaNiQ8XsXa5hnl8t2MuYSdVejeKgO4+xLVLV54GABvOBnndYIw==";
+  final String format = "json";
 
   List<dynamic> makeListForm(dynamic raw) {
     List<dynamic> resultList;
@@ -70,8 +71,10 @@ class BusApiService {
             contentType: Headers.jsonContentType,
           ),
           queryParameters: {
-            "lon" : x,
-            "lat" : y,
+            "x" : x,
+            "y" : y,
+            "serviceKey": serviceKey,
+            "format": format,
           },
         );
 
@@ -127,6 +130,8 @@ class BusApiService {
           ),
           queryParameters: {
             "stationId": stationId,
+            "serviceKey": serviceKey,
+            "format": format,
           },
         );
 
@@ -182,6 +187,8 @@ class BusApiService {
           ),
           queryParameters: {
             "routeId": routeId,
+            "serviceKey": serviceKey,
+            "format": format,
           },
         );
 
@@ -242,6 +249,8 @@ class BusApiService {
             "stationId": stationId,
             "routeId": routeId,
             "staOrder": staOrder,
+            "serviceKey": serviceKey,
+            "format": format,
           },
         );
 
