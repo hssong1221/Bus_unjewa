@@ -89,7 +89,7 @@ class _StationSettingViewState extends State<StationSettingView>
             children: [
               _buildHeader(colorScheme, watchBusProvider),
               _buildStationList(colorScheme, watchBusProvider, readBusProvider, readInitProvider),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -99,7 +99,7 @@ class _StationSettingViewState extends State<StationSettingView>
 
   Widget _buildHeader(ColorScheme colorScheme, watchBusProvider) {
     return Container(
-      padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 24.0),
+      padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 16.0),
       child: Column(
         children: [
           // Title Bar
@@ -118,24 +118,35 @@ class _StationSettingViewState extends State<StationSettingView>
               ),
               FadeTransition(
                 opacity: _fadeAnimation,
-                child: IconButton.filledTonal(
+                child: OutlinedButton.icon(
                   onPressed: () => _refreshStations(watchBusProvider),
                   icon: Icon(
                     Icons.refresh_rounded,
-                    color: colorScheme.onSecondaryContainer,
+                    size: 18,
+                    color: colorScheme.primary,
+                  ),
+                  label: Text(
+                    "위치 재검색",
+                    style: context.textStyle.labelMedium.copyWith(
+                      color: colorScheme.primary,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
           // Status Card
           FadeTransition(
             opacity: _fadeAnimation,
             child: Card.filled(
               color: colorScheme.primaryContainer.withValues(alpha: 0.3),
               child: Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
                     Icon(
@@ -145,7 +156,7 @@ class _StationSettingViewState extends State<StationSettingView>
                       size: 32,
                       color: colorScheme.primary,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 8),
                     Text(
                       watchBusProvider.busStationModel == null
                           ? '현재 위치 500m 반경 내\n버스 정류장을 검색중입니다'
@@ -177,59 +188,60 @@ class _StationSettingViewState extends State<StationSettingView>
             // List Header
             FadeTransition(
               opacity: _fadeAnimation,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
+              child: Card.filled(
+                margin: const EdgeInsets.only(bottom: 4),
+                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+                elevation: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.format_list_bulleted,
+                        size: 20,
+                        color: colorScheme.primary,
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 3,
+                        child: Text(
+                          "정류장 목록",
+                          style: context.textStyle.labelLarge.copyWith(
+                            color: colorScheme.onPrimaryContainer,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          "거리순",
+                          style: context.textStyle.caption.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 1,
-                      child: Text(
-                        "지역",
-                        style: context.textStyle.labelMedium.copyWith(color: colorScheme.onSurface),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        "정류장 이름",
-                        style: context.textStyle.labelMedium.copyWith(color: colorScheme.onSurface),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                    Expanded(
-                      flex: 2,
-                      child: Text(
-                        "거리",
-                        style: context.textStyle.labelMedium.copyWith(color: colorScheme.onSurface),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ),
             // List Content
             Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: colorScheme.surface,
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(16),
-                    bottomRight: Radius.circular(16),
-                  ),
-                  border: Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
+              child: Card.outlined(
+                margin: EdgeInsets.zero,
+                elevation: 0,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: busStationModel == null
+                      ? _buildLoadingState(colorScheme)
+                      : _buildStationListView(busStationModel, colorScheme, readBusProvider, readInitProvider),
                 ),
-                child: busStationModel == null
-                    ? _buildLoadingState(colorScheme)
-                    : _buildStationListView(busStationModel, colorScheme, readBusProvider, readInitProvider),
               ),
             ),
           ],
@@ -267,7 +279,7 @@ class _StationSettingViewState extends State<StationSettingView>
               child: Opacity(
                 opacity: _listAnimation.value,
                 child: Card.outlined(
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
                   child: InkWell(
                     borderRadius: BorderRadius.circular(12),
                     onTap: () async {
@@ -283,37 +295,21 @@ class _StationSettingViewState extends State<StationSettingView>
                       }
                     },
                     child: Container(
-                      padding: const EdgeInsets.all(16.0),
+                      padding: const EdgeInsets.all(12.0),
                       child: Row(
                         children: [
-                          // Region Tag
+                          // Station Info (확장)
                           Expanded(
-                            flex: 1,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: colorScheme.secondaryContainer.withValues(alpha: 0.5),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                item.regionName,
-                                style: context.textStyle.labelSmall.copyWith(
-                                  color: colorScheme.onSecondaryContainer,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Station Info
-                          Expanded(
-                            flex: 2,
+                            flex: 3,
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
+                              spacing: 8,
                               children: [
                                 Text(
                                   item.stationName,
                                   style: context.textStyle.subtitle.copyWith(color: colorScheme.onSurface),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   "ID: ${item.mobileNo}",
@@ -324,11 +320,12 @@ class _StationSettingViewState extends State<StationSettingView>
                               ],
                             ),
                           ),
+                          const SizedBox(width: 12),
                           // Distance Info
                           Expanded(
-                            flex: 2,
+                            flex: 1,
                             child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Icon(Icons.location_on_outlined, size: 16, color: colorScheme.primary),
                                 const SizedBox(width: 4),
@@ -359,4 +356,5 @@ class _StationSettingViewState extends State<StationSettingView>
     await context.read<BusProvider>().getBusStationList();
     _listController.forward();
   }
+
 }

@@ -118,46 +118,15 @@ class _StationMapDialogState extends State<StationMapDialog>
             ),
           ],
         ),
-        child: Row(
-          children: [
-            IconButton.filledTonal(
-              onPressed: () => Navigator.of(context).pop(false),
-              icon: Icon(Icons.close, color: colorScheme.onSecondaryContainer),
+        child: Center(
+          child: Text(
+            widget.station.stationName,
+            style: context.textStyle.headlineSmall.copyWith(
+              color: colorScheme.onSurface,
+              fontWeight: FontWeight.w600,
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.station.stationName,
-                    style: context.textStyle.headlineSmall.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  Text(
-                    '${widget.station.regionName} • ${widget.station.distance}m',
-                    style: context.textStyle.bodyMedium.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: colorScheme.primaryContainer.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Text(
-                'ID: ${widget.station.mobileNo}',
-                style: context.textStyle.labelSmall.copyWith(
-                  color: colorScheme.onPrimaryContainer,
-                ),
-              ),
-            ),
-          ],
+            textAlign: TextAlign.center,
+          ),
         ),
       ),
     );
@@ -233,26 +202,51 @@ class _StationMapDialogState extends State<StationMapDialog>
             Expanded(
               child: OutlinedButton.icon(
                 onPressed: () => Navigator.of(context).pop(false),
-                icon: const Icon(Icons.cancel_outlined),
-                label: Text('취소', style: context.textStyle.buttonText),
+                icon: const Icon(
+                  Icons.close,
+                  size: 20,
+                ),
+                label: Text(
+                  '취소',
+                  style: context.textStyle.labelLarge,
+                ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  side: BorderSide(
+                    color: colorScheme.outline,
+                    width: 1,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 12),
             Expanded(
               flex: 2,
               child: FilledButton.icon(
                 onPressed: () => Navigator.of(context).pop(true),
-                icon: const Icon(Icons.location_on),
-                label: Text('이 정류장 선택', style: context.textStyle.buttonText),
+                icon: Icon(
+                  Icons.check_circle,
+                  size: 20,
+                  color: colorScheme.onPrimary,
+                ),
+                label: Text(
+                  '이 정류장 선택',
+                  style: context.textStyle.labelLarge.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: colorScheme.onPrimary,
+                  ),
+                ),
                 style: FilledButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: colorScheme.primary,
                   foregroundColor: colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                 ),
               ),
             ),
@@ -271,31 +265,31 @@ class _StationMapDialogState extends State<StationMapDialog>
       position: NLatLng(widget.station.y, widget.station.x),
     );
     
-    // 마커 스타일 설정
+    // 마커 스타일 설정 - 단순하고 깔끔한 원형 마커
     final colorScheme = Theme.of(context).colorScheme;
     final markerIcon = await NOverlayImage.fromWidget(
       widget: Container(
-        width: 40,
-        height: 40,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
           color: colorScheme.primary,
           shape: BoxShape.circle,
           border: Border.all(color: Colors.white, width: 3),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
         ),
-        child: Icon(
-          Icons.directions_bus,
-          color: Colors.white,
-          size: 24,
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          margin: const EdgeInsets.all(6),
+          child: Icon(
+            Icons.location_on,
+            color: colorScheme.primary,
+            size: 16,
+          ),
         ),
       ),
-      size: const Size(40, 40),
+      size: const Size(36, 36),
       context: context,
     );
     
