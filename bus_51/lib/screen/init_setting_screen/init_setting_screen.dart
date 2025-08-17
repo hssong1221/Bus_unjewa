@@ -96,43 +96,96 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                 child: Container(
                   padding: const EdgeInsets.only(left: 24, right: 24, top: 4, bottom: 0),
                   child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          IconButton(
-                            onPressed: watchProvider.curIdx > 0 
-                                ? () {
-                                    _transitionController.reset();
-                                    watchProvider.prevAccountView();
-                                    _transitionController.forward();
-                                  }
-                                : null,
-                            icon: Icon(
-                              Icons.arrow_back,
-                              color: watchProvider.curIdx > 0 
-                                  ? colorScheme.onSurface 
-                                  : colorScheme.onSurface.withValues(alpha: 0.3),
+                          // 뒤로가기 버튼
+                          SizedBox(
+                            width: 48,
+                            child: IconButton(
+                              onPressed: watchProvider.curIdx > 0 
+                                  ? () {
+                                      _transitionController.reset();
+                                      watchProvider.prevAccountView();
+                                      _transitionController.forward();
+                                    }
+                                  : null,
+                              icon: Icon(
+                                Icons.arrow_back,
+                                color: watchProvider.curIdx > 0 
+                                    ? colorScheme.onSurface 
+                                    : colorScheme.onSurface.withValues(alpha: 0.3),
+                              ),
                             ),
                           ),
+                          // 프로그레스바 (중앙)
                           Expanded(
                             child: Container(
-                              height: 6,
+                              height: 8,
                               margin: const EdgeInsets.symmetric(horizontal: 16),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(3),
-                                child: LinearProgressIndicator(
-                                  value: (watchProvider.curIdx + 1) / 4,
-                                  backgroundColor: colorScheme.surfaceContainerHighest,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    colorScheme.secondary,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(4),
+                                color: colorScheme.surfaceContainerHighest,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.shadow.withValues(alpha: 0.1),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 1),
                                   ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: Stack(
+                                  children: [
+                                    // 백그라운드
+                                    Container(
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      color: Colors.transparent,
+                                    ),
+                                    // 프로그레스 바
+                                    AnimatedBuilder(
+                                      animation: _transitionController,
+                                      builder: (context, child) {
+                                        final progress = (watchProvider.curIdx + 1) / 4;
+                                        return FractionallySizedBox(
+                                          widthFactor: progress,
+                                          child: Container(
+                                            height: double.infinity,
+                                            decoration: BoxDecoration(
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  colorScheme.primary.withValues(alpha: 0.8),
+                                                  colorScheme.primary,
+                                                  colorScheme.secondary,
+                                                ],
+                                                stops: const [0.0, 0.7, 1.0],
+                                              ),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                  color: colorScheme.primary.withValues(alpha: 0.3),
+                                                  blurRadius: 6,
+                                                  spreadRadius: 0,
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                          Text(
-                            '${watchProvider.curIdx + 1}/4',
-                            style: context.textStyle.labelSmall.copyWith(
-                              color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          // 카운터 (우측 고정 너비)
+                          SizedBox(
+                            width: 48,
+                            child: Text(
+                              '${watchProvider.curIdx + 1}/4',
+                              style: context.textStyle.labelSmall.copyWith(
+                                color: colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                              textAlign: TextAlign.center,
                             ),
                           ),
                         ],

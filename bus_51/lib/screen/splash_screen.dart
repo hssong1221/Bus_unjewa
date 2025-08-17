@@ -1,6 +1,7 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -31,6 +32,11 @@ class SplashView extends StatefulWidget {
 }
 
 class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
+  // Animation constants
+  static const Duration _fadeDuration = Duration(milliseconds: 1500);
+  static const Duration _scaleDuration = Duration(milliseconds: 2000);
+  static const Duration _splashDelay = Duration(milliseconds: 2500);
+  
   late AnimationController _fadeController;
   late AnimationController _scaleController;
   late Animation<double> _fadeAnimation;
@@ -39,44 +45,41 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
+    _startSplashSequence();
+  }
 
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
+  void _setupAnimations() {
+    _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
+    _scaleController = AnimationController(duration: _scaleDuration, vsync: this);
+
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 2000),
-      vsync: this,
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
     );
-
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-
-    _scaleAnimation = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.easeOutBack,
-    ));
 
     _fadeController.forward();
     _scaleController.forward();
+  }
 
+  void _startSplashSequence() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 2500), () async {
-        final readBusProvider = context.read<BusProvider>();
-        var model = await readBusProvider.loadUserDataList();
+      Future.delayed(_splashDelay, () async {
+        try {
+          final readBusProvider = context.read<BusProvider>();
+          var model = await readBusProvider.loadUserDataList();
 
-        if(model.isEmpty) {
+          if(model.isEmpty) {
+            context.goNamed(InitSettingScreen.routeName);
+          } else {
+            context.goNamed(BusListScreen.routeName);
+          }
+        } catch (e) {
+          // 로컬 데이터 로딩 실패 = 데이터 없음으로 처리
           context.goNamed(InitSettingScreen.routeName);
-        } else {
-          context.goNamed(BusListScreen.routeName);
         }
       });
     });
@@ -141,7 +144,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                         const SizedBox(height: 32),
                         Text(
                           'Bus 언제와',
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          style: context.textStyle.headlineMedium.copyWith(
                             color: colorScheme.onPrimary,
                             letterSpacing: 1.2,
                           ),
@@ -149,7 +152,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                         const SizedBox(height: 8),
                         Text(
                           '실시간 버스 정보 서비스',
-                          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          style: context.textStyle.bodyLarge.copyWith(
                             color: colorScheme.onPrimary.withValues(alpha: 0.8),
                             letterSpacing: 0.5,
                           ),
