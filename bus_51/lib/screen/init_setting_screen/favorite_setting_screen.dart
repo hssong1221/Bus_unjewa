@@ -21,7 +21,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
   // Animation constants
   static const Duration _fadeDuration = Duration(milliseconds: 800);
   static const Duration _slideDuration = Duration(milliseconds: 600);
-  
+
   late AnimationController _fadeController;
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
@@ -73,34 +73,43 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
     final watchBusProvider = context.watch<BusProvider>();
 
     return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: SlideTransition(
-            position: _slideAnimation,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 24.0),
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minHeight: MediaQuery.of(context).size.height - 
-                            MediaQuery.of(context).padding.top - 
-                            MediaQuery.of(context).padding.bottom - 48, // SafeArea + padding
-                ),
-                child: IntrinsicHeight(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _buildHeader(colorScheme),
-                      _buildRouteInfoCard(colorScheme, watchBusProvider),
-                      const SizedBox(height: 32),
-                      _buildConfirmationInfo(colorScheme),
-                      const Spacer(),
-                      _buildSaveButton(colorScheme, readBusProvider),
-                      const SizedBox(height: 16),
-                    ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary.withValues(alpha: 0.08),
+              colorScheme.secondary.withValues(alpha: 0.04),
+              colorScheme.surface,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: Column(
+                children: [
+                  // 헤더는 고정
+                  _buildHeader(colorScheme),
+                  // 나머지는 스크롤 가능
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                      child: Column(
+                        children: [
+                          _buildRouteInfoCard(colorScheme, watchBusProvider),
+                          const SizedBox(height: 24),
+                          _buildBottomSection(colorScheme, readBusProvider),
+                          const SizedBox(height: 24),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
             ),
           ),
@@ -111,7 +120,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
 
   Widget _buildHeader(ColorScheme colorScheme) {
     return Container(
-      padding: const EdgeInsets.only(bottom: 32),
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       child: Column(
         children: [
           Text(
@@ -120,7 +129,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
               color: colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(
             '선택하신 노선 정보를 확인해주세요',
             style: context.textStyle.bodyLarge.copyWith(
@@ -133,16 +142,18 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
   }
 
   Widget _buildRouteInfoCard(ColorScheme colorScheme, watchBusProvider) {
+    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
+        border: Border.all(color: busColor.withValues(alpha: 0.3)), // 버스 색으로 테두리
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.1),
+            color: busColor.withValues(alpha: 0.1), // 버스 색으로 그림자
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -154,116 +165,113 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
             decoration: BoxDecoration(
-              color: BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0).withValues(alpha: 0.1),
+              color: busColor.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: busColor.withValues(alpha: 0.3)),
             ),
             child: Text(
               watchBusProvider.selectedRouteModel?.routeName ?? "버스 노선",
               style: context.textStyle.headlineMedium.copyWith(
-                color: BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0),
+                color: busColor,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ),
-          const SizedBox(height: 32),
-          // Route Path
-          Column(
-            children: [
-              // Previous Station
-              _buildStationItem(
-                context,
-                watchBusProvider.prevStationModel?.stationName ?? "이전 정류장",
-                colorScheme.onSurface.withValues(alpha: 0.5),
-                Icons.radio_button_unchecked,
-                false,
-              ),
-              const SizedBox(height: 16),
-              // Current Station (Selected)
-              _buildStationItem(
-                context,
-                watchBusProvider.curStationModel?.stationName ?? "선택한 정류장",
-                colorScheme.primary,
-                Icons.my_location,
-                true,
-              ),
-              const SizedBox(height: 16),
-              // Next Station
-              _buildStationItem(
-                context,
-                watchBusProvider.nextStationModel?.stationName ?? "다음 정류장",
-                colorScheme.onSurface.withValues(alpha: 0.5),
-                Icons.radio_button_unchecked,
-                false,
-              ),
-              const SizedBox(height: 24),
-              // Dots indicating more stations
-              Column(
-                children: List.generate(
-                  3,
-                  (index) => Container(
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    width: 4,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: colorScheme.onSurface.withValues(alpha: 0.3),
-                      shape: BoxShape.circle,
+          const SizedBox(height: 24),
+          // Direction Info
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: busColor.withValues(alpha: 0.1), // 버스 색 테마 적용
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: busColor.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.arrow_forward, color: busColor, size: 20), // 버스 색으로 아이콘
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '${watchBusProvider.selectedRouteModel?.routeDestName ?? "목적지"} 방면',
+                    style: context.textStyle.labelLarge.copyWith(
+                      color: busColor, // 버스 색으로 텍스트
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Stations List
+          _buildStationsList(colorScheme, watchBusProvider, busColor), // 버스 색 전달
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomSection(ColorScheme colorScheme, readBusProvider) {
+    return Column(
+      children: [
+        // 확인 메시지
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: colorScheme.primary.withValues(alpha: 0.2),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                Icons.route_rounded,
+                color: colorScheme.primary,
+                size: 24,
               ),
-              const SizedBox(height: 24),
-              // Destination
-              _buildStationItem(
-                context,
-                watchBusProvider.selectedRouteModel?.routeDestName ?? "최종 목적지",
-                colorScheme.secondary,
-                Icons.flag,
-                false,
+              const SizedBox(height: 8),
+              Text(
+                '정류장 순서가 맞나요?',
+                style: context.textStyle.titleMedium.copyWith(
+                  color: colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
             ],
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildConfirmationInfo(ColorScheme colorScheme) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.info_outline, color: colorScheme.primary, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '방향이 맞으면 저장 버튼을 눌러주세요',
-              style: context.textStyle.bodyMedium.copyWith(
-                color: colorScheme.onPrimaryContainer,
+        ),
+        const SizedBox(height: 20),
+        // 저장 버튼
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: FilledButton.icon(
+            onPressed: () => _saveRouteData(readBusProvider),
+            icon: const Icon(
+              Icons.check_rounded,
+              size: 20,
+            ),
+            label: Text(
+              '저장하고 시작하기',
+              style: context.textStyle.labelLarge.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
+              elevation: 3,
+              shadowColor: colorScheme.primary.withValues(alpha: 0.4),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSaveButton(ColorScheme colorScheme, readBusProvider) {
-    return SizedBox(
-      width: double.infinity,
-      height: 56,
-      child: FilledButton.icon(
-        onPressed: () => _saveRouteData(readBusProvider),
-        icon: const Icon(Icons.bookmark_add),
-        label: Text('저장하고 시작하기', style: context.textStyle.buttonText),
-        style: FilledButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-      ),
+      ],
     );
   }
 
@@ -288,35 +296,234 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
     await context.pushNamed(BusListScreen.routeName);
   }
 
-  Widget _buildStationItem(BuildContext context, String stationName, Color color, IconData icon, bool isSelected) {
-    final colorScheme = Theme.of(context).colorScheme;
+  Widget _buildStationsList(ColorScheme colorScheme, watchBusProvider, Color busColor) {
+    var routeStations = watchBusProvider.busRouteStationModel;
+    var currentStationId = watchBusProvider.selectedStationModel?.stationId;
+
+    if (routeStations?.isEmpty ?? true) {
+      return Container(
+        height: 200,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.directions_bus,
+                size: 48,
+                color: colorScheme.onSurface.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '정류장 정보를 불러오는 중...',
+                style: context.textStyle.bodyMedium.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    // 현재 정류장의 인덱스 찾기
+    int currentStationIndex = routeStations!.indexWhere(
+      (station) => station.stationId == currentStationId,
+    );
+
+    // 현재 정류장부터 종점까지만 표시
+    List<dynamic> displayStations = currentStationIndex >= 0 ? routeStations.sublist(currentStationIndex) : routeStations;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      height: 280,
       decoration: BoxDecoration(
-        color: isSelected ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8),
-        border: isSelected ? Border.all(color: color.withValues(alpha: 0.3)) : null,
+        color: colorScheme.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.1)),
       ),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        itemCount: displayStations.length,
+        separatorBuilder: (context, index) => Container(),
+        itemBuilder: (context, index) {
+          var station = displayStations[index];
+          bool isCurrentStation = index == 0; // 첫 번째가 현재 위치
+          bool isDestination = index == displayStations.length - 1;
+          bool isLast = index == displayStations.length - 1;
+
+          return _buildTimelineStationRow(
+            station.stationName,
+            isCurrentStation: isCurrentStation,
+            isDestination: isDestination,
+            isLast: isLast,
+            colorScheme: colorScheme,
+            busColor: busColor,
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTimelineStationRow(
+    String stationName, {
+    required bool isCurrentStation,
+    required bool isDestination,
+    required bool isLast,
+    required ColorScheme colorScheme,
+    required Color busColor,
+  }) {
+    Color getStationColor() {
+      if (isCurrentStation) return busColor;
+      if (isDestination) return busColor.withValues(alpha: 0.8);
+      return busColor.withValues(alpha: 0.6);
+    }
+
+    return SizedBox(
+      height: 44,
       child: Row(
         children: [
-          Icon(
-            icon,
-            color: color,
-            size: isSelected ? 24 : 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              stationName,
-              style: context.textStyle.bodyLarge.copyWith(
-                    color: color,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+          // 타임라인 영역 (고정 너비)
+          SizedBox(
+            width: 40,
+            height: 44,
+            child: CustomPaint(
+              painter: TimelinePainter(
+                isFirst: isCurrentStation,
+                isLast: isLast,
+                color: busColor,
+              ),
+              child: Center(
+                child: Container(
+                  width: isCurrentStation ? 16 : (isDestination ? 14 : 10),
+                  height: isCurrentStation ? 16 : (isDestination ? 14 : 10),
+                  decoration: BoxDecoration(
+                    color: isCurrentStation || isDestination ? getStationColor() : colorScheme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: getStationColor(),
+                      width: isCurrentStation ? 3 : 2,
+                    ),
+                    boxShadow: isCurrentStation
+                        ? [
+                            BoxShadow(
+                              color: getStationColor().withValues(alpha: 0.3),
+                              blurRadius: 8,
+                              spreadRadius: 0,
+                            ),
+                          ]
+                        : null,
                   ),
+                  child: isDestination
+                      ? const Icon(
+                          Icons.flag,
+                          color: Colors.white,
+                          size: 8,
+                        )
+                      : null,
+                ),
+              ),
+            ),
+          ),
+          // 정류장 정보 (수직 중앙 정렬)
+          Expanded(
+            child: Container(
+              height: 44,
+              padding: const EdgeInsets.only(left: 12),
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      stationName,
+                      style: context.textStyle.bodyMedium.copyWith(
+                        color: getStationColor(),
+                        fontWeight: isCurrentStation || isDestination ? FontWeight.w600 : FontWeight.w500,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  // 상태 태그
+                  if (isCurrentStation)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: busColor,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '현재 위치',
+                        style: context.textStyle.caption.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                  if (isDestination && !isCurrentStation)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: busColor.withValues(alpha: 0.8),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        '종점',
+                        style: context.textStyle.caption.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
+}
+
+// CustomPainter for timeline line
+class TimelinePainter extends CustomPainter {
+  final bool isFirst;
+  final bool isLast;
+  final Color color;
+
+  TimelinePainter({
+    required this.isFirst,
+    required this.isLast,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.4)
+      ..strokeWidth = 2;
+
+    final centerX = size.width / 2;
+
+    // 위쪽 선 (첫 번째가 아닌 경우)
+    if (!isFirst) {
+      canvas.drawLine(
+        Offset(centerX, 0),
+        Offset(centerX, size.height / 2),
+        paint,
+      );
+    }
+
+    // 아래쪽 선 (마지막이 아닌 경우)
+    if (!isLast) {
+      canvas.drawLine(
+        Offset(centerX, size.height / 2),
+        Offset(centerX, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
