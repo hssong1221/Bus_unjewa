@@ -4,9 +4,11 @@ import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/timer_provider.dart';
+import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 // --------------------------------------------------
@@ -194,7 +196,15 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       return _buildLoadingState(colorScheme, busColor);
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: true,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          // BusMainScreen에서 뒤로가기 시 BusListScreen으로 이동
+          context.goNamed(BusListScreen.routeName);
+        }
+      },
+      child: Scaffold(
       body: Container(
         height: MediaQuery.of(context).size.height,
         decoration: BoxDecoration(
@@ -265,6 +275,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
             ),
           ),
         ),
+      ),
       ),
     );
   }

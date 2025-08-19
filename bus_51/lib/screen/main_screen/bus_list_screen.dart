@@ -4,6 +4,7 @@ import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -43,6 +44,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   bool _isSelectionMode = false;
   Set<int> _selectedIndices = {};
 
+  // Back button handling
+  DateTime? _lastPressed;
+
   @override
   void initState() {
     super.initState();
@@ -75,21 +79,52 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     final watchProvider = context.watch<BusProvider>();
     var userSaveModel = watchProvider.loadUserDataList();
 
-    return Scaffold(
-      backgroundColor: colorScheme.surface,
-      body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnimation,
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(colorScheme),
-                const SizedBox(height: 32),
-                _buildRoutesList(colorScheme, userSaveModel, readProvider),
-                if (userSaveModel.isNotEmpty) _buildActionButtons(colorScheme, readProvider),
-              ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        
+        final now = DateTime.now();
+        const maxDuration = Duration(seconds: 2);
+        
+        final isWarning = _lastPressed == null || 
+            now.difference(_lastPressed!) > maxDuration;
+
+        if (isWarning) {
+          _lastPressed = now;
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('한번 더 누르면 앱이 종료됩니다'),
+              duration: maxDuration,
+              behavior: SnackBarBehavior.floating,
+              margin: const EdgeInsets.all(16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        } else {
+          // 앱 종료
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: colorScheme.surface,
+        body: SafeArea(
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHeader(colorScheme),
+                  const SizedBox(height: 32),
+                  _buildRoutesList(colorScheme, userSaveModel, readProvider),
+                  if (userSaveModel.isNotEmpty) _buildActionButtons(colorScheme, readProvider),
+                ],
+              ),
             ),
           ),
         ),
@@ -497,4 +532,5 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
       _selectedIndices.clear();
     });
   }
+
 }
