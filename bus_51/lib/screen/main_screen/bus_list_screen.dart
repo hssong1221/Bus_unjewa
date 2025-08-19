@@ -225,7 +225,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                       color: isSelected ? busColor : Colors.transparent,
                     ),
                     child: isSelected
-                        ? Icon(
+                        ? const Icon(
                             Icons.check,
                             size: 16,
                             color: Colors.white,
@@ -289,7 +289,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           child: _isSelectionMode
               ? FilledButton.icon(
                   onPressed: _selectedIndices.isNotEmpty ? () => _showSelectedDeleteConfirmDialog(context, readProvider) : null,
-                  icon: Icon(Icons.delete_outline, size: 20),
+                  icon: const Icon(Icons.delete_outline, size: 20),
                   label: Text(
                     '선택 삭제 (${_selectedIndices.length})',
                     style: context.textStyle.labelLarge.copyWith(
@@ -308,13 +308,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 )
               : OutlinedButton(
                   onPressed: _toggleSelectionMode,
-                  child: Text(
-                    '노선 삭제하기',
-                    style: context.textStyle.labelLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface.withValues(alpha: 0.8),
-                    ),
-                  ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
                       color: colorScheme.outline.withValues(alpha: 0.3),
@@ -324,6 +317,13 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  child: Text(
+                    '노선 삭제하기',
+                    style: context.textStyle.labelLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
@@ -422,7 +422,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             children: [
               Icon(Icons.warning_amber_outlined, color: colorScheme.error),
               const SizedBox(width: 8),
-              Text('선택 삭제'),
+              const Text('선택 삭제'),
             ],
           ),
           content: Column(
