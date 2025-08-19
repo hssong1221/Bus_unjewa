@@ -250,7 +250,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                               );
                             },
                             child: _isExpanded 
-                                ? _buildExpandedTimelineView(colorScheme, item, watchTimerProvider, readProvider, busColor)
+                                ? _buildExpandedTimelineView(colorScheme, item, watchTimerProvider, readProvider, busColor, userModel)
                                 : _buildCompactBusInfoSection(colorScheme, item, watchTimerProvider, readProvider, busColor),
                           );
                         },
@@ -475,7 +475,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildExpandedTimelineView(ColorScheme colorScheme, item, watchTimerProvider, readProvider, Color busColor) {
+  Widget _buildExpandedTimelineView(ColorScheme colorScheme, item, watchTimerProvider, readProvider, Color busColor, UserSaveModel userModel) {
     return GestureDetector(
       onTap: _toggleExpanded,
       child: Container(
@@ -519,7 +519,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
             const SizedBox(height: 16),
             // 타임라인 리스트
             Expanded(
-              child: _buildStationTimeline(colorScheme, readProvider, busColor, item),
+              child: _buildStationTimeline(colorScheme, readProvider, busColor, item, userModel),
             ),
           ],
         ),
@@ -527,9 +527,21 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildStationTimeline(ColorScheme colorScheme, readProvider, Color busColor, item) {
+  Widget _buildStationTimeline(ColorScheme colorScheme, readProvider, Color busColor, item, UserSaveModel userModel) {
     var routeStations = readProvider.busRouteStationModel;
     var currentStationId = readProvider.selectedStationModel?.stationId;
+    
+    // 현재 정류장의 인덱스 찾기
+    int currentStationIndex = -1;
+    if (currentStationId != null && routeStations!.isNotEmpty) {
+      currentStationIndex = routeStations.indexWhere(
+        (station) => station.stationId == currentStationId,
+      );
+    } else {
+      currentStationIndex = routeStations!.indexWhere(
+        (station) => station.stationId == userModel.stationId,
+      );
+    }
 
     if (routeStations?.isEmpty ?? true) {
       return Center(
@@ -569,44 +581,36 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       );
     }
 
-    // 현재 정류장의 인덱스 찾기 (안전하게)
-    int currentStationIndex = -1;
-    if (currentStationId != null && routeStations!.isNotEmpty) {
-      currentStationIndex = routeStations.indexWhere(
-        (station) => station.stationId == currentStationId,
-      );
-    }
-
     return ListView.builder(
       itemCount: routeStations.length,
+      controller: ScrollController(
+        initialScrollOffset: currentStationIndex > 0 ? (currentStationIndex * 60.0) - 120 : 0,
+      ),
       itemBuilder: (context, index) {
         var station = routeStations[index];
-        bool isCurrentStation = index == currentStationIndex;
         bool isDestination = index == routeStations.length - 1;
         bool isLast = index == routeStations.length - 1;
+        
+        bool isCurrentStation = index == currentStationIndex;
         
         // 실제 버스 위치 계산
         bool hasBus1 = false;
         bool hasBus2 = false;
         
-        // 안전한 타입 변환과 null 체크
         try {
           int? location1 = int.tryParse(item.locationNo1?.toString() ?? '0');
           int? location2 = int.tryParse(item.locationNo2?.toString() ?? '0');
           
           if (location1 != null && location1 > 0 && currentStationIndex >= 0) {
-            // 첫 번째 버스는 현재 정류장에서 location1만큼 앞에 있음
             int bus1Index = currentStationIndex - location1;
             hasBus1 = index == bus1Index && bus1Index >= 0;
           }
           
           if (location2 != null && location2 > 0 && currentStationIndex >= 0) {
-            // 두 번째 버스는 현재 정류장에서 location2만큼 앞에 있음
             int bus2Index = currentStationIndex - location2;
             hasBus2 = index == bus2Index && bus2Index >= 0;
           }
         } catch (e) {
-          // 오류 시 버스 위치 표시 안 함
           hasBus1 = false;
           hasBus2 = false;
         }
@@ -673,155 +677,89 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       return busColor.withValues(alpha: 0.6);
     }
 
+    // 버스가 있는 정류장의 배경색
+    Color getBackgroundColor() {
+      if (hasBus1 || hasBus2) {
+        return busColor.withValues(alpha: 0.08);
+      }
+      return Colors.transparent;
+    }
+
     return Container(
       height: 60,
+      decoration: BoxDecoration(
+        color: getBackgroundColor(),
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Row(
         children: [
           // 타임라인 영역
           SizedBox(
             width: 50,
-            child: CustomPaint(
-              painter: TimelinePainter(
-                isFirst: index == 0,
-                isLast: isLast,
-                color: busColor,
-              ),
-              child: Center(
-                child: Container(
-                  width: isCurrentStation ? 20 : 16,
-                  height: isCurrentStation ? 20 : 16,
-                  decoration: BoxDecoration(
-                    color: isCurrentStation || isDestination ? getStationColor() : colorScheme.surface,
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: getStationColor(),
-                      width: isCurrentStation ? 3 : 2,
-                    ),
-                    boxShadow: isCurrentStation
-                        ? [
-                            BoxShadow(
-                              color: getStationColor().withValues(alpha: 0.3),
-                              blurRadius: 8,
-                              spreadRadius: 0,
-                            ),
-                          ]
-                        : null,
+            child: Stack(
+              children: [
+                // 타임라인 선
+                CustomPaint(
+                  painter: TimelinePainter(
+                    isFirst: index == 0,
+                    isLast: isLast,
+                    color: busColor,
                   ),
-                  child: isDestination && !isCurrentStation
-                      ? const Icon(
-                          Icons.flag,
-                          color: Colors.white,
-                          size: 10,
-                        )
-                      : isCurrentStation 
-                          ? const Icon(
-                              Icons.location_on,
-                              color: Colors.white,
-                              size: 12,
-                            )
-                          : null,
+                  size: const Size(50, 60),
                 ),
-              ),
+                // 정류장 원형 아이콘 (중앙)
+                Center(
+                  child: Container(
+                    width: isCurrentStation || hasBus1 || hasBus2 ? 20 : 16,
+                    height: isCurrentStation || hasBus1 || hasBus2 ? 20 : 16,
+                    decoration: BoxDecoration(
+                      color: isCurrentStation || isDestination || hasBus1 || hasBus2 ? getStationColor() : colorScheme.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: getStationColor(),
+                        width: isCurrentStation ? 3 : 2,
+                      ),
+                      boxShadow: isCurrentStation
+                          ? [
+                              BoxShadow(
+                                color: getStationColor().withValues(alpha: 0.3),
+                                blurRadius: 8,
+                                spreadRadius: 0,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: _getStationIcon(isCurrentStation, isDestination, hasBus1, hasBus2, busColor),
+                  ),
+                ),
+              ],
             ),
           ),
           // 정류장 정보
           Expanded(
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          stationName,
-                          style: context.textStyle.bodyMedium.copyWith(
-                            color: getStationColor(),
-                            fontWeight: isCurrentStation || isDestination ? FontWeight.w600 : FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (isCurrentStation)
-                          Text(
-                            '현재 위치',
-                            style: context.textStyle.caption.copyWith(
-                              color: busColor.withValues(alpha: 0.7),
-                              fontSize: 10,
-                            ),
-                          ),
-                      ],
+                  Text(
+                    stationName,
+                    style: context.textStyle.bodyMedium.copyWith(
+                      color: getStationColor(),
+                      fontWeight: isCurrentStation || isDestination ? FontWeight.w600 : FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  // 버스 아이콘들
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (hasBus1) ...[
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: busColor.withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: busColor.withValues(alpha: 0.4),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.directions_bus,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '1번째',
-                          style: context.textStyle.caption.copyWith(
-                            color: busColor,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                      ],
-                      if (hasBus2) ...[
-                        Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: busColor.withValues(alpha: 0.6),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: busColor.withValues(alpha: 0.3),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.directions_bus_outlined,
-                            color: Colors.white,
-                            size: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '2번째',
-                          style: context.textStyle.caption.copyWith(
-                            color: busColor.withValues(alpha: 0.7),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
+                  if (isCurrentStation)
+                    Text(
+                      '현재 위치',
+                      style: context.textStyle.caption.copyWith(
+                        color: busColor.withValues(alpha: 0.7),
+                        fontSize: 10,
+                      ),
+                    ),
                 ],
               ),
             ),
@@ -829,6 +767,46 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
         ],
       ),
     );
+  }
+
+  Widget? _getStationIcon(bool isCurrentStation, bool isDestination, bool hasBus1, bool hasBus2, Color busColor) {
+    // 현재 위치가 최우선
+    if (isCurrentStation) {
+      return const Icon(
+        Icons.location_on,
+        color: Colors.white,
+        size: 12,
+      );
+    }
+    
+    // 종점 아이콘
+    if (isDestination) {
+      return const Icon(
+        Icons.flag,
+        color: Colors.white,
+        size: 10,
+      );
+    }
+    
+    // 1번째 버스 아이콘 - 크게
+    if (hasBus1) {
+      return const Icon(
+        Icons.directions_bus,
+        color: Colors.white,
+        size: 14,
+      );
+    }
+    
+    // 2번째 버스 아이콘 - 크게
+    if (hasBus2) {
+      return const Icon(
+        Icons.directions_bus,
+        color: Colors.white,
+        size: 14,
+      );
+    }
+    
+    return null;
   }
 
   Widget _buildBusInfo(
