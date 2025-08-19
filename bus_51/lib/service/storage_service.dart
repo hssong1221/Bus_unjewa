@@ -61,4 +61,20 @@ class StorageService {
     }
     // 이미 있으면 아무것도 하지 않음
   }
+
+  // 선택한 인덱스들 삭제
+  Future<void> removeItems(List<int> indices) async {
+    final list = loadUserModelList();
+    
+    // 인덱스를 역순으로 정렬해서 삭제 (높은 인덱스부터 삭제해야 인덱스 꼬임 방지)
+    final sortedIndices = indices.toList()..sort((a, b) => b.compareTo(a));
+    
+    for (int index in sortedIndices) {
+      if (index >= 0 && index < list.length) {
+        list.removeAt(index);
+      }
+    }
+    
+    await _saveUserModelList(list);
+  }
 }

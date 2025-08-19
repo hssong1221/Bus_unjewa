@@ -124,6 +124,12 @@ class BusProvider extends ChangeNotifier {
     return _storageService.deleteUserData();
   }
 
+  // 선택한 노선들 삭제
+  Future<void> deleteSelectedUserData(List<int> indices) async {
+    await _storageService.removeItems(indices);
+    notifyListeners();
+  }
+
   // 유저가 선택한 노선 idx
   int _userDataIdx = 0;
   int get userDataIdx => _userDataIdx;

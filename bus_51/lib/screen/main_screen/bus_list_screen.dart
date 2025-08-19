@@ -317,52 +317,88 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     return Column(
       children: [
         const SizedBox(height: 24),
-        // 삭제 버튼 (항상 표시)
-        SizedBox(
-          width: double.infinity,
-          height: 52,
-          child: _isSelectionMode
-              ? FilledButton.icon(
-                  onPressed: _selectedIndices.isNotEmpty ? () => _showSelectedDeleteConfirmDialog(context, readProvider) : null,
-                  icon: const Icon(Icons.delete_outline, size: 20),
-                  label: Text(
-                    '선택 삭제 (${_selectedIndices.length})',
-                    style: context.textStyle.labelLarge.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _selectedIndices.isNotEmpty ? colorScheme.error : colorScheme.surfaceContainerHighest,
-                    foregroundColor: _selectedIndices.isNotEmpty ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
-                    elevation: _selectedIndices.isNotEmpty ? 3 : 0,
-                    shadowColor: colorScheme.error.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                )
-              : OutlinedButton(
-                  onPressed: _toggleSelectionMode,
+        // 삭제 버튼들
+        if (_isSelectionMode)
+          Row(
+            children: [
+              // 전체 삭제 버튼 (왼쪽, 작게)
+              SizedBox(
+                width: 100,
+                height: 42,
+                child: OutlinedButton(
+                  onPressed: () => _showAllDeleteConfirmDialog(context, readProvider),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
-                      color: colorScheme.outline.withValues(alpha: 0.3),
+                      color: colorScheme.error,
                       width: 1,
                     ),
-                    backgroundColor: colorScheme.surface,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    foregroundColor: colorScheme.error,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
-                    '노선 삭제하기',
-                    style: context.textStyle.labelLarge.copyWith(
+                    '전체 삭제',
+                    style: context.textStyle.labelMedium.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface.withValues(alpha: 0.8),
                     ),
                   ),
                 ),
-        ),
+              ),
+              const SizedBox(width: 12),
+              // 선택 삭제 버튼 (오른쪽, 큰 영역)
+              Expanded(
+                child: SizedBox(
+                  height: 52,
+                  child: FilledButton.icon(
+                    onPressed: _selectedIndices.isNotEmpty ? () => _showSelectedDeleteConfirmDialog(context, readProvider) : null,
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    label: Text(
+                      '선택 삭제 (${_selectedIndices.length})',
+                      style: context.textStyle.labelLarge.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _selectedIndices.isNotEmpty ? colorScheme.error : colorScheme.surfaceContainerHighest,
+                      foregroundColor: _selectedIndices.isNotEmpty ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
+                      elevation: _selectedIndices.isNotEmpty ? 3 : 0,
+                      shadowColor: colorScheme.error.withValues(alpha: 0.4),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          )
+        else
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton(
+              onPressed: _toggleSelectionMode,
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(
+                  color: colorScheme.outline.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+                backgroundColor: colorScheme.surface,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: Text(
+                '노선 삭제하기',
+                style: context.textStyle.labelLarge.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface.withValues(alpha: 0.8),
+                ),
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -517,20 +553,136 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  void _deleteSelectedRoutes(BusProvider provider) {
-    final userSaveModel = provider.loadUserDataList();
-    final sortedIndices = _selectedIndices.toList()..sort((a, b) => b.compareTo(a));
+  void _deleteSelectedRoutes(BusProvider provider) async {
+    try {
+      // BusProvider의 deleteSelectedUserData 메서드 호출
+      await provider.deleteSelectedUserData(_selectedIndices.toList());
+      
+      setState(() {
+        _isSelectionMode = false;
+        _selectedIndices.clear();
+      });
 
-    // 인덱스를 역순으로 정렬해서 삭제 (높은 인덱스부터 삭제해야 인덱스 꼬임 방지)
-    for (int index in sortedIndices) {
-      // 실제 삭제 로직은 BusProvider에 구현되어야 함
-      // 현재는 전체 삭제만 있으므로, 개별 삭제 메서드가 필요
+      // 성공 메시지 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('선택한 노선이 삭제되었습니다'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // 오류 메시지 표시
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('삭제 중 오류가 발생했습니다: $e'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
     }
+  }
 
-    setState(() {
-      _isSelectionMode = false;
-      _selectedIndices.clear();
-    });
+  void _showAllDeleteConfirmDialog(BuildContext context, BusProvider provider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final userSaveModel = provider.loadUserDataList();
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Icon(Icons.warning_amber_outlined, color: colorScheme.error),
+              const SizedBox(width: 8),
+              const Text('전체 삭제'),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('모든 저장된 노선(${userSaveModel.length}개)을 삭제하시겠습니까?'),
+              const SizedBox(height: 16),
+              Text(
+                '이 작업은 실행 취소할 수 없습니다.',
+                style: context.textStyle.bodySmall.copyWith(
+                  color: colorScheme.error,
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('취소'),
+            ),
+            FilledButton(
+              onPressed: () {
+                _deleteAllRoutes(provider);
+                Navigator.of(context).pop();
+              },
+              style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
+              child: const Text('전체 삭제'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _deleteAllRoutes(BusProvider provider) {
+    try {
+      provider.deleteAllData();
+      
+      setState(() {
+        _isSelectionMode = false;
+        _selectedIndices.clear();
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('모든 노선이 삭제되었습니다'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('삭제 중 오류가 발생했습니다: $e'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
   }
 
 }
