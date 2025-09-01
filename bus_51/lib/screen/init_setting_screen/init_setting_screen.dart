@@ -54,6 +54,17 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
       parent: _transitionController,
       curve: Curves.easeInOutCubic,
     ));
+    
+    // URL 파라미터 확인하여 StationSettingView부터 시작할지 결정
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = GoRouterState.of(context).uri;
+      final startFromStation = uri.queryParameters['startFromStation'] == 'true';
+      
+      if (startFromStation) {
+        context.read<InitProvider>().setInitialIndex(1); // StationSettingView부터 시작 (index 1)
+      }
+    });
+    
     _transitionController.forward();
   }
 

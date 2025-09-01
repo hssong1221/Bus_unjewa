@@ -21,6 +21,12 @@ class InitProvider with ChangeNotifier {
   Widget get curView => _views[_curIdx];
   int get curIdx => _curIdx;
 
+  // 초기 인덱스 설정 (버스 추가 시 StationSettingView부터 시작)
+  void setInitialIndex(int index) {
+    _curIdx = index;
+    notifyListeners();
+  }
+
   // view 순서 제어
   void prevAccountView() {
     _curIdx--;

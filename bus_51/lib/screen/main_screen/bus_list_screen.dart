@@ -173,7 +173,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed: () => context.pushNamed(InitSettingScreen.routeName),
+                onPressed: () => context.pushNamed(
+                  InitSettingScreen.routeName,
+                  queryParameters: {'startFromStation': 'true'},
+                ),
                 icon: Icon(Icons.add_road, color: colorScheme.onPrimary),
                 tooltip: '새 버스 노선 추가하기',
               ),
@@ -440,7 +443,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             width: 220,
             height: 52,
             child: FilledButton.icon(
-              onPressed: () => context.pushNamed(InitSettingScreen.routeName),
+              onPressed: () => context.pushNamed(
+                InitSettingScreen.routeName,
+                queryParameters: {'startFromStation': 'true'},
+              ),
               icon: const Icon(Icons.add_road, size: 20),
               label: Text(
                 '첫 번째 노선 추가하기',
