@@ -1,3 +1,4 @@
+import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
@@ -26,6 +27,9 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
   late AnimationController _slideController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  
+  // 선택된 버스 타입 (기본값: none)
+  BusType _selectedBusType = BusType.none;
 
   @override
   void initState() {
@@ -211,17 +215,23 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
   }
 
   Widget _buildBottomSection(ColorScheme colorScheme, readBusProvider) {
+    final watchBusProvider = context.watch<BusProvider>();
+    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0);
+    
     return Column(
       children: [
+        // 버스 타입 선택
+        _buildBusTypeSelector(colorScheme),
+        const SizedBox(height: 24),
         // 확인 메시지
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+            color: colorScheme.onSurface.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: colorScheme.primary.withValues(alpha: 0.2),
+              color: colorScheme.onSurface.withValues(alpha: 0.1),
               width: 1,
             ),
           ),
@@ -229,14 +239,14 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
             children: [
               Icon(
                 Icons.route_rounded,
-                color: colorScheme.primary,
+                color: colorScheme.onSurface.withValues(alpha: 0.7),
                 size: 24,
               ),
               const SizedBox(height: 8),
               Text(
                 '정류장 순서가 맞나요?',
                 style: context.textStyle.titleMedium.copyWith(
-                  color: colorScheme.onPrimaryContainer,
+                  color: colorScheme.onSurface,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -258,11 +268,10 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
               '저장하고 시작하기',
               style: context.textStyle.labelLarge.copyWith(
                 fontWeight: FontWeight.w600,
+                color: Colors.white,
               ),
             ),
             style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
               elevation: 3,
               shadowColor: colorScheme.primary.withValues(alpha: 0.4),
               shape: RoundedRectangleBorder(
@@ -290,10 +299,170 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
       routeId: routeId,
       staOrder: staOrder,
       routeTypeCd: routeTypeCd,
+      busType: _selectedBusType,
     );
 
     await readBusProvider.saveUserDataList(order);
     await context.pushNamed(BusListScreen.routeName);
+  }
+
+  Widget _buildBusTypeSelector(ColorScheme colorScheme) {
+    final watchBusProvider = context.watch<BusProvider>();
+    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.schedule_rounded,
+                color: busColor,
+                size: 24,
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '이 버스는 언제 이용하시나요?',
+                style: context.textStyle.titleMedium.copyWith(
+                  color: colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              // 평시
+              Expanded(
+                child: _buildTypeButton(
+                  title: '평시',
+                  subtitle: '일반',
+                  icon: Icons.directions_bus_rounded,
+                  type: BusType.none,
+                  colorScheme: colorScheme,
+                  busColor: busColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 출근
+              Expanded(
+                child: _buildTypeButton(
+                  title: '출근',
+                  subtitle: '집 → 회사',
+                  icon: Icons.business_center_rounded,
+                  type: BusType.work,
+                  colorScheme: colorScheme,
+                  busColor: busColor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              // 퇴근
+              Expanded(
+                child: _buildTypeButton(
+                  title: '퇴근',
+                  subtitle: '회사 → 집',
+                  icon: Icons.home_rounded,
+                  type: BusType.home,
+                  colorScheme: colorScheme,
+                  busColor: busColor,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTypeButton({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    required BusType type,
+    required ColorScheme colorScheme,
+    required Color busColor,
+  }) {
+    final isSelected = _selectedBusType == type;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _selectedBusType = type),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? busColor.withValues(alpha: 0.1)
+                : colorScheme.surfaceContainerHigh,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected 
+                  ? busColor
+                  : colorScheme.outline.withValues(alpha: 0.2),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: isSelected 
+                      ? busColor.withValues(alpha: 0.2)
+                      : colorScheme.onSurface.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  icon,
+                  color: isSelected 
+                      ? busColor 
+                      : colorScheme.onSurface.withValues(alpha: 0.7),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                style: context.textStyle.labelMedium.copyWith(
+                  color: isSelected 
+                      ? busColor 
+                      : colorScheme.onSurface,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: context.textStyle.bodySmall.copyWith(
+                  color: isSelected 
+                      ? busColor.withValues(alpha: 0.8)
+                      : colorScheme.onSurface.withValues(alpha: 0.6),
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildStationsList(ColorScheme colorScheme, watchBusProvider, Color busColor) {

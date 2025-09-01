@@ -1,3 +1,4 @@
+import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
@@ -42,7 +43,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
 
   // Selection mode state
   bool _isSelectionMode = false;
-  Set<int> _selectedIndices = {};
+  final Set<int> _selectedIndices = {};
 
   // Back button handling
   DateTime? _lastPressed;
@@ -52,6 +53,15 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     super.initState();
     _setupAnimations();
     _startAnimations();
+    // 시간대에 맞는 초기 모드 설정
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final provider = context.read<BusProvider>();
+      // 테스트 데이터 추가 (필요시 주석 해제)
+      // if (provider.loadUserDataList().isEmpty) {
+      //   await provider.addTestData();
+      // }
+      provider.setInitialBusMode();
+    });
   }
 
   void _setupAnimations() {
@@ -77,7 +87,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     final colorScheme = Theme.of(context).colorScheme;
     final readProvider = context.read<BusProvider>();
     final watchProvider = context.watch<BusProvider>();
-    var userSaveModel = watchProvider.loadUserDataList();
+    var userSaveModel = watchProvider.getFilteredBusList();
 
     return PopScope(
       canPop: false,
@@ -120,7 +130,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildHeader(colorScheme),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 16),
+                  _buildModeSelector(colorScheme, watchProvider, readProvider),
+                  const SizedBox(height: 24),
                   _buildRoutesList(colorScheme, userSaveModel, readProvider),
                   if (userSaveModel.isNotEmpty) _buildActionButtons(colorScheme, readProvider),
                 ],
@@ -133,8 +145,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   }
 
   Widget _buildHeader(ColorScheme colorScheme) {
-    final watchProvider = context.watch<BusProvider>();
-    var userSaveModel = watchProvider.loadUserDataList();
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -187,6 +197,87 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
+  Widget _buildModeSelector(ColorScheme colorScheme, BusProvider watchProvider, BusProvider readProvider) {
+    return Row(
+      children: [
+        // 출근 모드
+        Expanded(
+          child: _buildModeButton(
+            title: '출근',
+            mode: BusMode.work,
+            isSelected: watchProvider.currentBusMode == BusMode.work,
+            colorScheme: colorScheme,
+            onTap: () => readProvider.setBusMode(BusMode.work),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // 퇴근 모드
+        Expanded(
+          child: _buildModeButton(
+            title: '퇴근',
+            mode: BusMode.home,
+            isSelected: watchProvider.currentBusMode == BusMode.home,
+            colorScheme: colorScheme,
+            onTap: () => readProvider.setBusMode(BusMode.home),
+          ),
+        ),
+        const SizedBox(width: 8),
+        // 전체 모드
+        Expanded(
+          child: _buildModeButton(
+            title: '전체',
+            mode: BusMode.all,
+            isSelected: watchProvider.currentBusMode == BusMode.all,
+            colorScheme: colorScheme,
+            onTap: () => readProvider.setBusMode(BusMode.all),
+          ),
+        ),
+      ],
+    );
+  }
+
+
+  Widget _buildModeButton({
+    required String title,
+    required BusMode mode,
+    required bool isSelected,
+    required ColorScheme colorScheme,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: isSelected 
+                ? Colors.teal.withValues(alpha: 0.15)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected 
+                  ? Colors.teal.withValues(alpha: 0.7)
+                  : colorScheme.outline.withValues(alpha: 0.3),
+              width: isSelected ? 2 : 1,
+            ),
+          ),
+          child: Text(
+            title,
+            style: context.textStyle.labelLarge.copyWith(
+              color: isSelected 
+                  ? Colors.white
+                  : colorScheme.onSurface.withValues(alpha: 0.5),
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildRoutesList(ColorScheme colorScheme, userSaveModel, readProvider) {
     return Expanded(
       child: userSaveModel.isEmpty
@@ -212,8 +303,17 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildRouteItem(item, ColorScheme colorScheme, readProvider, int index) {
-    final isSelected = _selectedIndices.contains(index);
+  Widget _buildRouteItem(item, ColorScheme colorScheme, readProvider, int filteredIndex) {
+    // 전체 리스트에서의 실제 인덱스를 찾기
+    final allUserSaveModel = readProvider.loadUserDataList();
+    final actualIndex = allUserSaveModel.indexWhere((busItem) => 
+      busItem.stationId == item.stationId && 
+      busItem.routeId == item.routeId && 
+      busItem.staOrder == item.staOrder &&
+      busItem.busType == item.busType
+    );
+    
+    final isSelected = _selectedIndices.contains(actualIndex);
     final busColor = BusColor().setColor(item.routeTypeCd);
 
     return Container(
@@ -224,12 +324,13 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           borderRadius: BorderRadius.circular(16),
           onTap: () {
             if (_isSelectionMode) {
-              _toggleSelection(index);
+              _toggleSelection(actualIndex);
             } else {
-              readProvider.userDataIdx = index;
+              readProvider.userDataIdx = actualIndex;
               context.pushNamed(BusMainScreen.routeName);
             }
           },
+          onLongPress: () => _showBusTypeChangeDialog(context, readProvider, actualIndex, item),
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -288,17 +389,21 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 const SizedBox(width: 16),
                 // Route Info
                 Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      item.routeName.toString(),
-                      style: context.textStyle.headlineLarge.copyWith(
-                        color: busColor,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.0,
-                        fontSize: 32,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.routeName.toString(),
+                        style: context.textStyle.headlineLarge.copyWith(
+                          color: busColor,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -1.0,
+                          fontSize: 32,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 4),
+                      _buildBusTypeBadge(item.busType, colorScheme),
+                    ],
                   ),
                 ),
                 // Arrow (선택 모드가 아닐 때만 표시)
@@ -360,6 +465,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                       '선택 삭제 (${_selectedIndices.length})',
                       style: context.textStyle.labelLarge.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: _selectedIndices.isNotEmpty ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
                     style: FilledButton.styleFrom(
@@ -452,6 +558,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 '첫 번째 노선 추가하기',
                 style: context.textStyle.labelLarge.copyWith(
                   fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
               style: FilledButton.styleFrom(
@@ -690,5 +797,229 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
       }
     }
   }
+
+  Widget _buildBusTypeBadge(BusType busType, ColorScheme colorScheme) {
+    String text;
+    Color backgroundColor;
+    Color textColor;
+
+    switch (busType) {
+      case BusType.work:
+        text = '출근';
+        backgroundColor = Colors.blue.shade100;
+        textColor = Colors.blue.shade800;
+        break;
+      case BusType.home:
+        text = '퇴근';
+        backgroundColor = Colors.orange.shade100;
+        textColor = Colors.orange.shade800;
+        break;
+      case BusType.none:
+        text = '평시';
+        backgroundColor = colorScheme.surfaceContainerHighest;
+        textColor = colorScheme.onSurface.withValues(alpha: 0.7);
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Text(
+        text,
+        style: context.textStyle.labelSmall.copyWith(
+          color: textColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  void _showBusTypeChangeDialog(BuildContext context, BusProvider provider, int index, item) {
+    final colorScheme = Theme.of(context).colorScheme;
+    BusType selectedType = item.busType;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Row(
+                children: [
+                  Icon(Icons.edit_outlined, color: colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text('${item.routeName} 버스 타입 변경'),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '이 버스의 용도를 선택해 주세요',
+                    style: context.textStyle.bodyMedium.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  // 버스 타입 선택 옵션들
+                  _buildTypeOption(
+                    title: '평시',
+                    subtitle: '일반적인 이용',
+                    type: BusType.none,
+                    isSelected: selectedType == BusType.none,
+                    colorScheme: colorScheme,
+                    onTap: () => setDialogState(() => selectedType = BusType.none),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTypeOption(
+                    title: '출근',
+                    subtitle: '출근 시간대 이용',
+                    type: BusType.work,
+                    isSelected: selectedType == BusType.work,
+                    colorScheme: colorScheme,
+                    onTap: () => setDialogState(() => selectedType = BusType.work),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildTypeOption(
+                    title: '퇴근',
+                    subtitle: '퇴근 시간대 이용',
+                    type: BusType.home,
+                    isSelected: selectedType == BusType.home,
+                    colorScheme: colorScheme,
+                    onTap: () => setDialogState(() => selectedType = BusType.home),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('취소'),
+                ),
+                FilledButton(
+                  onPressed: () {
+                    _changeBusType(provider, index, selectedType);
+                    Navigator.of(context).pop();
+                  },
+                  child: const Text('변경'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTypeOption({
+    required String title,
+    required String subtitle,
+    required BusType type,
+    required bool isSelected,
+    required ColorScheme colorScheme,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected ? colorScheme.primary.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? colorScheme.primary : colorScheme.outline.withValues(alpha: 0.3),
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isSelected ? colorScheme.primary : colorScheme.outline,
+                  width: 2,
+                ),
+                color: isSelected ? colorScheme.primary : Colors.transparent,
+              ),
+              child: isSelected
+                  ? const Icon(
+                      Icons.check,
+                      size: 12,
+                      color: Colors.white,
+                    )
+                  : null,
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: context.textStyle.labelLarge.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: isSelected ? colorScheme.primary : colorScheme.onSurface,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: context.textStyle.bodySmall.copyWith(
+                      color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _changeBusType(BusProvider provider, int index, BusType newType) async {
+    try {
+      await provider.updateBusType(index, newType);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('버스 타입이 변경되었습니다'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('타입 변경 중 오류가 발생했습니다: $e'),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+
 
 }

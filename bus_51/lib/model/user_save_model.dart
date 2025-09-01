@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import 'package:bus_51/enums/bus_enums.dart';
 
 part 'user_save_model.freezed.dart';
 part 'user_save_model.g.dart';
@@ -11,6 +12,7 @@ sealed class UserSaveModel with _$UserSaveModel {
     required int routeId,
     required int staOrder,
     required int routeTypeCd,
+    required BusType busType,
   }) = _UserSaveModel;
 
   factory UserSaveModel.fromJson(Map<String, dynamic> json) =>

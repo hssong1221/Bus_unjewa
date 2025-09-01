@@ -1,3 +1,4 @@
+import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/service/dio_singleton.dart';
 import 'package:dio/dio.dart';
@@ -48,11 +49,12 @@ class StorageService {
   Future<void> addUserSaveModel(UserSaveModel newUser) async {
     final list = loadUserModelList();
 
-    // 중복 체크: 모든 필드가 동일한 경우
+    // 중복 체크: 정류장, 노선, 순서, 버스타입이 모두 동일한 경우
     final exists = list.any((user) =>
     user.stationId == newUser.stationId &&
         user.routeId == newUser.routeId &&
-        user.staOrder == newUser.staOrder
+        user.staOrder == newUser.staOrder &&
+        user.busType == newUser.busType
     );
 
     if (!exists) {
@@ -76,5 +78,17 @@ class StorageService {
     }
     
     await _saveUserModelList(list);
+  }
+
+  // 특정 인덱스의 버스 타입 변경
+  Future<void> updateBusType(int index, BusType newBusType) async {
+    final list = loadUserModelList();
+    
+    if (index >= 0 && index < list.length) {
+      // 기존 데이터를 복사하고 busType만 변경
+      final updatedUser = list[index].copyWith(busType: newBusType);
+      list[index] = updatedUser;
+      await _saveUserModelList(list);
+    }
   }
 }
