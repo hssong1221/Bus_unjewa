@@ -39,8 +39,8 @@ sealed class BusArrivalEntity with _$BusArrivalEntity {
     required int turnSeq,
     required String vehId1,
     required String vehId2,
-    @Default(0) int? predictTimeSec1,
-    @Default(0) int? predictTimeSec2,
+    required int predictTimeSec1,
+    required int predictTimeSec2,
   }) = _BusArrivalEntity;
 
   factory BusArrivalEntity.fromJson(Map<String, dynamic> json) {
