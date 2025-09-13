@@ -211,7 +211,7 @@ class BusApiService {
   }
 
   // 유저가 선택한 정류장과 노선에 맞는 버스 도착정보 가져오기
-  Future<BusArrivalModel> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
+  Future<BusArrivalModel?> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
     final primaryPath = "${AppConstants.apiBaseUrl}/getBusArrivalItemv2";
     final fallbackPath = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
 
@@ -229,7 +229,26 @@ class BusApiService {
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> resultList = makeListForm(response.data["response"]["msgBody"]["busArrivalItem"]);
+        // resultCode 확인 (4는 결과가 존재하지 않음)
+        final resultCode = response.data["response"]["msgHeader"]["resultCode"];
+        if (resultCode == 4) {
+          debugPrint("버스 운행 정보가 없습니다: ${response.data["response"]["msgHeader"]["resultMessage"]}");
+          return null;
+        }
+
+        // msgBody가 null이거나 busArrivalItem이 없는 경우 처리
+        final msgBody = response.data["response"]["msgBody"];
+        if (msgBody == null || msgBody["busArrivalItem"] == null) {
+          debugPrint("버스 도착 정보가 없습니다");
+          return null;
+        }
+
+        List<dynamic> resultList = makeListForm(msgBody["busArrivalItem"]);
+        if (resultList.isEmpty) {
+          debugPrint("버스 도착 정보 리스트가 비어있습니다");
+          return null;
+        }
+
         var entitiesList = resultList.map((json) => BusArrivalEntity.fromJson(json)).toList();
         // 버스 도착정보는 항상 한개임
         var model = BusArrivalMapper.fromEntity(entitiesList[0]);
@@ -255,7 +274,26 @@ class BusApiService {
         );
 
         if (fallbackResponse.statusCode == 200) {
-          List<dynamic> resultList = makeListForm(fallbackResponse.data["response"]["msgBody"]["busArrivalItem"]);
+          // resultCode 확인 (4는 결과가 존재하지 않음)
+          final resultCode = fallbackResponse.data["response"]["msgHeader"]["resultCode"];
+          if (resultCode == 4) {
+            debugPrint("버스 운행 정보가 없습니다: ${fallbackResponse.data["response"]["msgHeader"]["resultMessage"]}");
+            return null;
+          }
+
+          // msgBody가 null이거나 busArrivalItem이 없는 경우 처리
+          final msgBody = fallbackResponse.data["response"]["msgBody"];
+          if (msgBody == null || msgBody["busArrivalItem"] == null) {
+            debugPrint("버스 도착 정보가 없습니다");
+            return null;
+          }
+
+          List<dynamic> resultList = makeListForm(msgBody["busArrivalItem"]);
+          if (resultList.isEmpty) {
+            debugPrint("버스 도착 정보 리스트가 비어있습니다");
+            return null;
+          }
+
           var entitiesList = resultList.map((json) => BusArrivalEntity.fromJson(json)).toList();
           // 버스 도착정보는 항상 한개임
           var model = BusArrivalMapper.fromEntity(entitiesList[0]);

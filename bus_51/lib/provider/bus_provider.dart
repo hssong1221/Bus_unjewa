@@ -67,6 +67,11 @@ class BusProvider extends ChangeNotifier {
 
   BusArrivalModel? get busArrivalModel => _busArrivalModel;
 
+  // 버스 운행 상태
+  bool _isBusOperating = true; // 버스가 운행 중인지 여부
+
+  bool get isBusOperating => _isBusOperating;
+
   // 정류장 리스트에서 선택
   void setSelectedStationModel(BusStationModel model) {
     _selectedStationModel = model;
@@ -328,8 +333,15 @@ class BusProvider extends ChangeNotifier {
         routeId: routeId,
         staOrder: staOrder,
       );
+
+      // 버스 운행 상태 업데이트
+      _isBusOperating = _busArrivalModel != null;
+
     } on ApiException catch (e) {
       debugPrint(e.toString());
+      // API 에러 시에도 운행 상태 false로 설정
+      _isBusOperating = false;
+      _busArrivalModel = null;
     } finally {
       notifyListeners();
     }

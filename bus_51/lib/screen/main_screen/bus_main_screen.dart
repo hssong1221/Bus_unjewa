@@ -106,8 +106,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       );
 
       var item = readProvider.busArrivalModel;
-      readTimerProvider.setTimerFromApi(item?.predictTimeSec1 ?? 0, item?.predictTimeSec2 ?? 0);
-      _startTimer(userModel);
+      if (item != null && readProvider.isBusOperating) {
+        readTimerProvider.setTimerFromApi(item.predictTimeSec1 ?? 0, item.predictTimeSec2 ?? 0);
+        _startTimer(userModel);
+      }
     });
   }
 
@@ -120,7 +122,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
           );
 
       var item = context.read<BusProvider>().busArrivalModel;
-      context.read<TimerProvider>().setTimerFromApi(item?.predictTimeSec1 ?? 0, item?.predictTimeSec2 ?? 0);
+      var busProvider = context.read<BusProvider>();
+      if (item != null && busProvider.isBusOperating) {
+        context.read<TimerProvider>().setTimerFromApi(item.predictTimeSec1 ?? 0, item.predictTimeSec2 ?? 0);
+      }
     });
   }
 
@@ -193,6 +198,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
     final busColor = BusColor().setColor(userModel.routeTypeCd);
 
     if (item == null) {
+      // 버스 운행 여부 확인
+      if (!watchProvider.isBusOperating) {
+        return _buildNoBusOperatingState(colorScheme, busColor);
+      }
       return _buildLoadingState(colorScheme, busColor);
     }
 
@@ -231,10 +240,12 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 );
 
                 var updatedItem = readProvider.busArrivalModel;
-                readTimerProvider.setTimerFromApi(
-                  updatedItem?.predictTimeSec1 ?? 0, 
-                  updatedItem?.predictTimeSec2 ?? 0
-                );
+                if (updatedItem != null && readProvider.isBusOperating) {
+                  readTimerProvider.setTimerFromApi(
+                    updatedItem.predictTimeSec1 ?? 0,
+                    updatedItem.predictTimeSec2 ?? 0
+                  );
+                }
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
@@ -317,6 +328,130 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 '버스 정보를 불러오는 중...',
                 style: context.textStyle.bodyLarge.copyWith(
                   color: colorScheme.onSurface.withValues(alpha: 0.7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoBusOperatingState(ColorScheme colorScheme, Color busColor) {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              busColor.withValues(alpha: 0.1),
+              colorScheme.surface,
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // 헤더
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    IconButton(
+                      onPressed: () => context.goNamed(BusListScreen.routeName),
+                      icon: Icon(
+                        Icons.arrow_back_ios,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            userModel.routeName.toString(),
+                            style: context.textStyle.headlineLarge.copyWith(
+                              color: busColor,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 28,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // 메인 컨텐츠
+              Expanded(
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.directions_bus_filled,
+                          size: 64,
+                          color: colorScheme.onSurface.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        '현재 정류장으로 오고있는 버스가 없습니다',
+                        style: context.textStyle.headlineSmall.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '버스가 아직 차고지에서 출발하지 않았거나\n운행이 종료되었을 수 있습니다',
+                        style: context.textStyle.bodyLarge.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 32),
+                      // 새로고침 버튼
+                      SizedBox(
+                        width: 200,
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            final readProvider = context.read<BusProvider>();
+                            await readProvider.getBusArrivalTimeList(
+                              stationId: userModel.stationId.toString(),
+                              routeId: userModel.routeId.toString(),
+                              staOrder: userModel.staOrder.toString(),
+                            );
+                          },
+                          icon: const Icon(Icons.refresh, size: 20),
+                          label: Text(
+                            '새로고침',
+                            style: context.textStyle.labelLarge.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: busColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],

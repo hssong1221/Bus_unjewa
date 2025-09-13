@@ -244,7 +244,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
               ),
               const SizedBox(height: 8),
               Text(
-                '정류장 순서가 맞나요?',
+                '진행방향이 맞나요?',
                 style: context.textStyle.titleMedium.copyWith(
                   color: colorScheme.onSurface,
                   fontWeight: FontWeight.w600,

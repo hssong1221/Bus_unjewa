@@ -200,6 +200,17 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   Widget _buildModeSelector(ColorScheme colorScheme, BusProvider watchProvider, BusProvider readProvider) {
     return Row(
       children: [
+        // 전체 모드
+        Expanded(
+          child: _buildModeButton(
+            title: '전체',
+            mode: BusMode.all,
+            isSelected: watchProvider.currentBusMode == BusMode.all,
+            colorScheme: colorScheme,
+            onTap: () => readProvider.setBusMode(BusMode.all),
+          ),
+        ),
+        const SizedBox(width: 8),
         // 출근 모드
         Expanded(
           child: _buildModeButton(
@@ -219,17 +230,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             isSelected: watchProvider.currentBusMode == BusMode.home,
             colorScheme: colorScheme,
             onTap: () => readProvider.setBusMode(BusMode.home),
-          ),
-        ),
-        const SizedBox(width: 8),
-        // 전체 모드
-        Expanded(
-          child: _buildModeButton(
-            title: '전체',
-            mode: BusMode.all,
-            isSelected: watchProvider.currentBusMode == BusMode.all,
-            colorScheme: colorScheme,
-            onTap: () => readProvider.setBusMode(BusMode.all),
           ),
         ),
       ],
