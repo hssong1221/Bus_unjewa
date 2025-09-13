@@ -6,11 +6,11 @@ class BusStationMapper {
     return BusStationModel(
       mobileNo: entity.mobileNo,
       regionName: entity.regionName,
-      stationId: entity.stationId,
+      stationId: int.tryParse(entity.stationId) ?? 0,
       stationName: entity.stationName,
-      distance: entity.distance,
-      x: entity.x,
-      y: entity.y,
+      distance: int.tryParse(entity.distance) ?? 0,
+      x: double.tryParse(entity.x) ?? 0.0,
+      y: double.tryParse(entity.y) ?? 0.0,
     );
   }
 

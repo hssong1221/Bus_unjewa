@@ -5,13 +5,13 @@ class BusRouteMapper {
   static BusRouteModel fromEntity(BusRouteEntity entity) {
     return BusRouteModel(
       regionName: entity.regionName,
-      routeDestId: entity.routeDestId,
+      routeDestId: int.tryParse(entity.routeDestId) ?? 0,
       routeDestName: entity.routeDestName,
-      routeId: entity.routeId,
+      routeId: int.tryParse(entity.routeId) ?? 0,
       routeName: entity.routeName,
-      routeTypeCd: entity.routeTypeCd,
+      routeTypeCd: int.tryParse(entity.routeTypeCd) ?? 0,
       routeTypeName: entity.routeTypeName,
-      staOrder: entity.staOrder,
+      staOrder: int.tryParse(entity.staOrder) ?? 0,
     );
   }
 

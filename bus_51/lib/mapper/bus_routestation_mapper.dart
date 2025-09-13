@@ -5,16 +5,16 @@ class BusRouteStationMapper {
   static BusRouteStationModel fromEntity(BusRouteStationEntity entity) {
     return BusRouteStationModel(
       centerYn: entity.centerYn,
-      districtCd: entity.districtCd,
+      districtCd: int.tryParse(entity.districtCd) ?? 0,
       mobileNo: entity.mobileNo,
       regionName: entity.regionName,
-      stationId: entity.stationId,
+      stationId: int.tryParse(entity.stationId) ?? 0,
       stationName: entity.stationName,
-      x: entity.x,
-      y: entity.y,
+      x: double.tryParse(entity.x) ?? 0.0,
+      y: double.tryParse(entity.y) ?? 0.0,
       adminName: entity.adminName,
-      stationSeq: entity.stationSeq,
-      turnSeq: entity.turnSeq,
+      stationSeq: int.tryParse(entity.stationSeq) ?? 0,
+      turnSeq: int.tryParse(entity.turnSeq) ?? 0,
       turnYn: entity.turnYn,
     );
   }
