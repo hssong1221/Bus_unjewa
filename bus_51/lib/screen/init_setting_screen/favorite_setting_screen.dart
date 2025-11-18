@@ -286,10 +286,10 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
 
   Future<void> _saveRouteData(readBusProvider) async {
     String routeName = readBusProvider.selectedRouteModel!.routeName;
-    int stationId = readBusProvider.curStationModel!.stationId;
-    int routeId = readBusProvider.selectedRouteModel!.routeId;
-    int staOrder = readBusProvider.curStationModel!.stationSeq;
-    int routeTypeCd = readBusProvider.selectedRouteModel!.routeTypeCd;
+    int stationId = int.parse(readBusProvider.curStationModel!.stationId);
+    int routeId = int.parse(readBusProvider.selectedRouteModel!.routeId);
+    int staOrder = int.parse(readBusProvider.curStationModel!.stationSeq);
+    int routeTypeCd = int.parse(readBusProvider.selectedRouteModel!.routeTypeCd);
 
     debugPrint("$routeName $stationId $routeId $staOrder $routeTypeCd");
 
