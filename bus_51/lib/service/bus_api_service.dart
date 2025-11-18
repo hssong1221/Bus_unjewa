@@ -39,7 +39,8 @@ class BusApiService {
 
   /// 내 주변 500미터 버스 정류장 상세
   Future<List<BusStationModel>> getBusStationList({required String x, required String y}) async {
-    final apiPath = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
+    final apiPath = "${AppConstants.apiBaseUrl}/getBusStationAroundListv2";
+    // final apiPath = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
 
     try {
       final response = await _dio.get(
@@ -48,10 +49,12 @@ class BusApiService {
           contentType: Headers.jsonContentType,
         ),
         queryParameters: {
-          "x" : x,
-          "y" : y,
-          "serviceKey": serviceKey,
-          "format": format,
+          "lon" : x,
+          "lat" : y,
+          // "x" : x,
+          // "y" : y,
+          // "serviceKey": serviceKey,
+          // "format": format,
         },
       );
 
@@ -74,7 +77,8 @@ class BusApiService {
 
   /// 버스 정류장을 지나가는 노선
   Future<List<BusRouteModel>> getBusRouteList({required String stationId}) async {
-    final apiPath = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
+    final apiPath = "${AppConstants.apiBaseUrl}/getBusStationViaRouteListv2";
+    // final apiPath = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
 
     try {
       final response = await _dio.get(
@@ -84,8 +88,8 @@ class BusApiService {
         ),
         queryParameters: {
           "stationId": stationId,
-          "serviceKey": serviceKey,
-          "format": format,
+          // "serviceKey": serviceKey,
+          // "format": format,
         },
       );
 
@@ -108,7 +112,8 @@ class BusApiService {
 
   /// 버스 노선이 지나가는 정류장 리스트
   Future<List<BusRouteStationModel>> getBusRouteStationList({required String routeId}) async {
-    final apiPath = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
+    final apiPath = "${AppConstants.apiBaseUrl}/getBusRouteStationListv2";
+    // final apiPath = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
 
     try {
       final response = await _dio.get(
@@ -118,8 +123,8 @@ class BusApiService {
         ),
         queryParameters: {
           "routeId": routeId,
-          "serviceKey": serviceKey,
-          "format": format,
+          // "serviceKey": serviceKey,
+          // "format": format,
         },
       );
 
@@ -142,7 +147,8 @@ class BusApiService {
 
   // 유저가 선택한 정류장과 노선에 맞는 버스 도착정보 가져오기
   Future<BusArrivalModel?> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
-    final apiPath = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
+    final apiPath = "${AppConstants.apiBaseUrl}/getBusArrivalItemv2";
+    // final apiPath = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
 
     try {
       final response = await _dio.get(
@@ -154,8 +160,8 @@ class BusApiService {
           "stationId": stationId,
           "routeId": routeId,
           "staOrder": staOrder,
-          "serviceKey": serviceKey,
-          "format": format,
+          // "serviceKey": serviceKey,
+          // "format": format,
         },
       );
 

@@ -4,11 +4,11 @@
 class BusStationModel {
   final String mobileNo;
   final String regionName;
-  final int stationId;
+  final String stationId;
   final String stationName;
-  final int distance;
-  final double x;
-  final double y;
+  final String distance;
+  final String x;
+  final String y;
 
   const BusStationModel({
     required this.mobileNo,

@@ -107,7 +107,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
 
       var item = readProvider.busArrivalModel;
       if (item != null && readProvider.isBusOperating) {
-        readTimerProvider.setTimerFromApi(item.predictTimeSec1 ?? 0, item.predictTimeSec2 ?? 0);
+        readTimerProvider.setTimerFromApi(
+          int.tryParse(item.predictTimeSec1) ?? 0,
+          int.tryParse(item.predictTimeSec2) ?? 0
+        );
         _startTimer(userModel);
       }
     });
@@ -124,7 +127,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       var item = context.read<BusProvider>().busArrivalModel;
       var busProvider = context.read<BusProvider>();
       if (item != null && busProvider.isBusOperating) {
-        context.read<TimerProvider>().setTimerFromApi(item.predictTimeSec1 ?? 0, item.predictTimeSec2 ?? 0);
+        context.read<TimerProvider>().setTimerFromApi(
+          int.tryParse(item.predictTimeSec1) ?? 0,
+          int.tryParse(item.predictTimeSec2) ?? 0
+        );
       }
     });
   }
@@ -155,13 +161,13 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
         // userModel의 정보로 BusRouteModel을 생성해서 설정
         final routeModel = BusRouteModel(
           regionName: '', // 지역명은 빈 문자열로 기본값
-          routeDestId: 0, // 목적지 ID는 0으로 기본값
+          routeDestId: '0', // 목적지 ID는 0으로 기본값
           routeDestName: '', // 목적지명은 빈 문자열로 기본값
-          routeId: userModel.routeId,
+          routeId: userModel.routeId.toString(),
           routeName: userModel.routeName,
-          routeTypeCd: userModel.routeTypeCd,
+          routeTypeCd: userModel.routeTypeCd.toString(),
           routeTypeName: '', // 타입명은 빈 문자열로 기본값
-          staOrder: userModel.staOrder,
+          staOrder: userModel.staOrder.toString(),
         );
         
         readProvider.setSelectedRouteModel(routeModel);
@@ -242,8 +248,8 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 var updatedItem = readProvider.busArrivalModel;
                 if (updatedItem != null && readProvider.isBusOperating) {
                   readTimerProvider.setTimerFromApi(
-                    updatedItem.predictTimeSec1 ?? 0,
-                    updatedItem.predictTimeSec2 ?? 0
+                    int.tryParse(updatedItem.predictTimeSec1) ?? 0,
+                    int.tryParse(updatedItem.predictTimeSec2) ?? 0
                   );
                 }
               },

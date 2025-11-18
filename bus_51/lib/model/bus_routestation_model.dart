@@ -3,16 +3,16 @@
 // --------------------------------------------------
 class BusRouteStationModel {
   final String centerYn;
-  final int districtCd;
+  final String districtCd;
   final String mobileNo;
   final String regionName;
-  final int stationId;
+  final String stationId;
   final String stationName;
-  final double x;
-  final double y;
+  final String x;
+  final String y;
   final String adminName;
-  final int stationSeq;
-  final int turnSeq;
+  final String stationSeq;
+  final String turnSeq;
   final String turnYn;
 
   const BusRouteStationModel({

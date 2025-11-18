@@ -88,7 +88,7 @@ class BusProvider extends ChangeNotifier {
 
   // 전 현 다음, 정류장 넣기
   void setUserStation() {
-    int staOrder = _selectedRouteModel!.staOrder;
+    int staOrder = int.parse(_selectedRouteModel!.staOrder);
 
     if (_busRouteStationModel == null) {
       return;

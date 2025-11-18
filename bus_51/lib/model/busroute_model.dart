@@ -3,13 +3,13 @@
 // --------------------------------------------------
 class BusRouteModel {
   final String regionName;
-  final int routeDestId;
+  final String routeDestId;
   final String routeDestName;
-  final int routeId;
+  final String routeId;
   final String routeName;
-  final int routeTypeCd;
+  final String routeTypeCd;
   final String routeTypeName;
-  final int staOrder;
+  final String staOrder;
 
   const BusRouteModel({
     required this.regionName,

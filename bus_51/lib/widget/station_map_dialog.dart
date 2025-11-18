@@ -155,7 +155,7 @@ class _StationMapDialogState extends State<StationMapDialog>
                 onMapReady: _onMapReady,
                 options: NaverMapViewOptions(
                   initialCameraPosition: NCameraPosition(
-                    target: NLatLng(widget.station.y, widget.station.x),
+                    target: NLatLng(double.parse(widget.station.y), double.parse(widget.station.x)),
                     zoom: 18,
                   ),
                   mapType: NMapType.basic,
@@ -262,7 +262,7 @@ class _StationMapDialogState extends State<StationMapDialog>
     // 정류장 마커 생성
     _stationMarker = NMarker(
       id: 'station_${widget.station.stationId}',
-      position: NLatLng(widget.station.y, widget.station.x),
+      position: NLatLng(double.parse(widget.station.y), double.parse(widget.station.x)),
     );
     
     // 마커 스타일 설정 - 단순하고 깔끔한 원형 마커

@@ -146,7 +146,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
   }
 
   Widget _buildRouteInfoCard(ColorScheme colorScheme, watchBusProvider) {
-    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0);
+    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? '0');
 
     return Container(
       width: double.infinity,
@@ -216,7 +216,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
 
   Widget _buildBottomSection(ColorScheme colorScheme, readBusProvider) {
     final watchBusProvider = context.watch<BusProvider>();
-    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0);
+    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? '0');
     
     return Column(
       children: [
@@ -308,7 +308,7 @@ class _FavoriteSettingViewState extends State<FavoriteSettingView> with TickerPr
 
   Widget _buildBusTypeSelector(ColorScheme colorScheme) {
     final watchBusProvider = context.watch<BusProvider>();
-    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? 0);
+    final busColor = BusColor().setColor(watchBusProvider.selectedRouteModel?.routeTypeCd ?? '0');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
