@@ -244,7 +244,7 @@ final ThemeData lightTheme = ThemeData(
       ),
     ),
   ),
-  cardTheme: CardTheme(
+  cardTheme: CardThemeData(
     color: _lightColorScheme.surface,
     surfaceTintColor: _lightColorScheme.surfaceTint.withValues(alpha: 0.05),
     elevation: 4,
