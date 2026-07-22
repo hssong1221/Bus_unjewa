@@ -58,12 +58,11 @@ final ThemeData lightTheme = ThemeData(
   splashFactory: InkRipple.splashFactory,
   primaryColor: _lightCustomColors.backgroundPaper,
   scaffoldBackgroundColor: _lightCustomColors.backgroundPaper,
-  dialogBackgroundColor: _lightCustomColors.backgroundPaper,
   bottomSheetTheme: BottomSheetThemeData(
     backgroundColor: _lightCustomColors.backgroundPaper,
     surfaceTintColor: _lightCustomColors.backgroundPaper,
   ),
-  dialogTheme: DialogTheme(
+  dialogTheme: DialogThemeData(
     backgroundColor: _lightCustomColors.backgroundPaper,
     surfaceTintColor: _lightCustomColors.backgroundPaper,
   ),
