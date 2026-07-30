@@ -105,7 +105,17 @@ class StationSettingViewModel extends ChangeNotifier {
     if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
       throw Exception('위치 권한이 거부되었습니다');
     }
-    final position = await Geolocator.getCurrentPosition();
-    return (lat: position.latitude, lng: position.longitude);
+
+    try {
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(timeLimit: Duration(seconds: 8)),
+      );
+      return (lat: position.latitude, lng: position.longitude);
+    } on Exception {
+      // 실내 등에서 GPS fix가 늦으면 마지막 알려진 위치로 폴백
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown == null) rethrow;
+      return (lat: lastKnown.latitude, lng: lastKnown.longitude);
+    }
   }
 }

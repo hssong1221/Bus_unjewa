@@ -37,10 +37,18 @@ class _StationMapView extends StatefulWidget {
 class _StationMapViewState extends State<_StationMapView> {
   NaverMapController? _mapController;
   NOverlayImage? _markerIcon;
+  NOverlayImage? _selectedMarkerIcon;
   bool _isMapReady = false;
 
   // 마지막으로 지도에 그린 정류장 리스트 (VM 리스트와 identical 비교로 갱신 감지)
   List<BusStationModel> _renderedStations = const [];
+
+  // 검색이 연달아 실행됐을 때 이전 마커 동기화 루프를 중단시키기 위한 세대 번호
+  int _markerSyncGeneration = 0;
+
+  // 지도에 올라가 있는 마커들 (선택 하이라이트 갱신용)
+  final Map<String, NMarker> _markersById = {};
+  String? _highlightedStationId;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +57,7 @@ class _StationMapViewState extends State<_StationMapView> {
     final initialPosition = vm.initialPosition;
 
     _syncMarkers(vm);
+    _syncSelectionHighlight(vm);
 
     return Scaffold(
       body: Container(
@@ -230,8 +239,6 @@ class _StationMapViewState extends State<_StationMapView> {
         ),
       ),
       style: FilledButton.styleFrom(
-        backgroundColor: colorScheme.primary,
-        foregroundColor: colorScheme.onPrimary,
         elevation: 2,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -317,10 +324,7 @@ class _StationMapViewState extends State<_StationMapView> {
                   ),
                 ),
                 style: FilledButton.styleFrom(
-                  backgroundColor: colorScheme.primary,
-                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
@@ -361,36 +365,27 @@ class _StationMapViewState extends State<_StationMapView> {
     if (controller == null || identical(_renderedStations, vm.stations)) return;
     final stations = vm.stations;
     _renderedStations = stations;
+    final generation = ++_markerSyncGeneration;
     final colorScheme = Theme.of(context).colorScheme;
 
-    _markerIcon ??= await NOverlayImage.fromWidget(
-      widget: Container(
-        width: 36,
-        height: 36,
-        decoration: BoxDecoration(
-          color: colorScheme.primary,
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.white, width: 3),
-        ),
-        child: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            shape: BoxShape.circle,
-          ),
-          margin: const EdgeInsets.all(6),
-          child: Icon(
-            Icons.location_on,
-            color: colorScheme.primary,
-            size: 16,
-          ),
-        ),
-      ),
-      size: const Size(36, 36),
-      context: context,
-    );
+    if (_markerIcon == null || _selectedMarkerIcon == null) {
+      final normalIconFuture = _buildMarkerIcon(colorScheme, selected: false);
+      final selectedIconFuture = _buildMarkerIcon(colorScheme, selected: true);
+      _markerIcon = await normalIconFuture;
+      _selectedMarkerIcon = await selectedIconFuture;
+    }
 
-    await controller.clearOverlays();
+    // 아이콘 생성 사이에 새 검색이 끝났으면 이 루프는 중단 (최신 세대가 다시 그림)
+    if (generation != _markerSyncGeneration) return;
+
+    // 위치 오버레이(현위치 파란 점)는 남기고 마커만 지운다
+    await controller.clearOverlays(type: NOverlayType.marker);
+    _markersById.clear();
+    _highlightedStationId = null;
+
     for (final station in stations) {
+      if (generation != _markerSyncGeneration) return;
+
       final lat = double.tryParse(station.y);
       final lng = double.tryParse(station.x);
       if (lat == null || lng == null) continue;
@@ -407,8 +402,56 @@ class _StationMapViewState extends State<_StationMapView> {
         textSize: 12,
       ));
       marker.setOnTapListener((_) => vm.selectStation(station));
+      _markersById[station.stationId] = marker;
       await controller.addOverlay(marker);
     }
+  }
+
+  Future<NOverlayImage> _buildMarkerIcon(ColorScheme colorScheme, {required bool selected}) {
+    final size = selected ? 44.0 : 36.0;
+    return NOverlayImage.fromWidget(
+      widget: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: colorScheme.primary,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+        ),
+        child: selected
+            ? const Icon(
+                Icons.directions_bus,
+                color: Colors.white,
+                size: 22,
+              )
+            : Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                margin: const EdgeInsets.all(6),
+                child: Icon(
+                  Icons.location_on,
+                  color: colorScheme.primary,
+                  size: 16,
+                ),
+              ),
+      ),
+      size: Size(size, size),
+      context: context,
+    );
+  }
+
+  // 선택된 정류장의 마커를 강조 아이콘으로 교체한다
+  void _syncSelectionHighlight(StationSettingViewModel vm) {
+    final selectedId = vm.selectedStation?.stationId;
+    if (selectedId == _highlightedStationId) return;
+    if (_markerIcon == null || _selectedMarkerIcon == null) return;
+
+    _markersById[_highlightedStationId]?.setIcon(_markerIcon!);
+    final selectedMarker = _markersById[selectedId];
+    selectedMarker?.setIcon(_selectedMarkerIcon!);
+    _highlightedStationId = selectedMarker != null ? selectedId : null;
   }
 
   // 긴 정류장 이름은 캡션에서 말줄임 (전체 이름은 선택 카드에 표시됨)

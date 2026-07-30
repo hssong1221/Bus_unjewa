@@ -24,7 +24,7 @@ final ColorScheme _lightColorScheme = ColorScheme(
   onTertiary: const Color(0xFF000000),
   tertiaryContainer: const Color(0xFFFFE0B2),
   onTertiaryContainer: const Color(0xFF3E2723),
-  // Error: 빨간색 (급행버스)
+  // Error: 빨간색 (에러 전용 — 버스 노선 색상은 utils/bus_color.dart 사용)
   error: const Color(0xFFEE2737),
   onError: const Color(0xFFFFFFFF),
   errorContainer: const Color(0xFFFFCDD2),
@@ -216,8 +216,8 @@ final ThemeData lightTheme = ThemeData(
   ),
   filledButtonTheme: FilledButtonThemeData(
     style: FilledButton.styleFrom(
-      backgroundColor: _lightColorScheme.secondary, // 파란색
-      foregroundColor: _lightColorScheme.onSecondary,
+      backgroundColor: _lightColorScheme.primary, // 주 액션 버튼은 초록색 (화면별 override 불필요)
+      foregroundColor: _lightColorScheme.onPrimary,
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
