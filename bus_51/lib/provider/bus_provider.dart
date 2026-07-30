@@ -7,7 +7,6 @@ import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/utils/api_exception.dart';
 import 'package:bus_51/service/bus_api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 
 class BusProvider extends ChangeNotifier {
   BusProvider(
@@ -18,26 +17,12 @@ class BusProvider extends ChangeNotifier {
   final BusApiService _busApiServices;
   final StorageService _storageService;
 
-  //GPS DATA
-  String? _latitude;
-  String? _longitude;
-
-  String? get latitude => _latitude;
-  String? get longitude => _longitude;
-
   // bus station model
-  List<BusStationModel>? _busStationModel;
   BusStationModel? _selectedStationModel;
   Map<String, String>? _data;
 
-  List<BusStationModel>? get busStationModel => _busStationModel;
   BusStationModel? get selectedStationModel => _selectedStationModel;
   Map<String, String> get data => _data ?? {};
-
-  set busStationModel(List<BusStationModel>? value) {
-    _busStationModel = value;
-    notifyListeners();
-  }
 
   // bus route model
   List<BusRouteModel>? _busRouteModel;
@@ -261,32 +246,6 @@ class BusProvider extends ChangeNotifier {
   // -------
   // API 연결
   // -------
-  // gps 데이터 연결 및 가져오기
-  Future<void> getGPSData() async {
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        return Future.error('permissions are denied');
-      }
-    }
-
-    Position position = await Geolocator.getCurrentPosition();
-    _latitude = position.latitude.toString();
-    _longitude = position.longitude.toString();
-  }
-
-  // 버스 정류장 데이터 가져오기
-  Future<void> getBusStationList() async {
-    try {
-      _busStationModel = await _busApiServices.getBusStationList(x: _longitude!, y: _latitude!);
-    } on ApiException catch (e) {
-      debugPrint(e.toString());
-    } finally {
-      notifyListeners();
-    }
-  }
-
   // 버스 정류장을 지나가는 노선 데이터 가져오기
   Future<void> getBusRouteList() async {
     String? stationId = _selectedStationModel?.stationId.toString();

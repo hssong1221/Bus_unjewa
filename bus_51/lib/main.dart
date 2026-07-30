@@ -1,5 +1,6 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
+import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/router/router.dart';
 import 'package:bus_51/service/bus_api_service.dart';
 import 'package:bus_51/service/dio_singleton.dart';
@@ -21,6 +22,7 @@ void setUp(SharedPreferencesWithCache prefs) {
   getIt.registerLazySingleton<BusApiService>(() => BusApiService());
   getIt.registerLazySingleton<StorageService>(() => StorageService(prefs));
   getIt.registerLazySingleton<BusArrivalRepository>(() => BusArrivalRepository(getIt<BusApiService>()));
+  getIt.registerLazySingleton<BusStationRepository>(() => BusStationRepository(getIt<BusApiService>()));
 }
 
 void main() async {

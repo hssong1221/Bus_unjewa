@@ -1,73 +1,54 @@
+import 'package:bus_51/model/busstation_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
+import 'package:bus_51/viewmodel/station_setting_view_model.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
-import 'package:bus_51/widget/station_map_dialog.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // View
+// 지도에서 정류장을 직접 찾아 선택하는 화면
+// 초기 카메라는 현재 위치, "이 지역에서 검색" 버튼으로 지도 중심 주변을 재검색
 // --------------------------------------------------
-class StationSettingView extends StatefulWidget {
+class StationSettingView extends StatelessWidget {
   const StationSettingView({super.key});
 
   @override
-  State<StationSettingView> createState() => _StationSettingViewState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => StationSettingViewModel(GetIt.I<BusStationRepository>())..init(),
+      child: const _StationMapView(),
+    );
+  }
 }
 
-class _StationSettingViewState extends State<StationSettingView> with TickerProviderStateMixin {
-  // Animation constants
-  static const Duration _fadeDuration = Duration(milliseconds: 800);
-  static const Duration _listDuration = Duration(milliseconds: 1200);
-
-  late AnimationController _fadeController;
-  late AnimationController _listController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _listAnimation;
+class _StationMapView extends StatefulWidget {
+  const _StationMapView();
 
   @override
-  void initState() {
-    super.initState();
-    _setupAnimations();
-    _initializeStations();
-  }
+  State<_StationMapView> createState() => _StationMapViewState();
+}
 
-  void _setupAnimations() {
-    _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
-    _listController = AnimationController(duration: _listDuration, vsync: this);
+class _StationMapViewState extends State<_StationMapView> {
+  NaverMapController? _mapController;
+  NOverlayImage? _markerIcon;
+  bool _isMapReady = false;
 
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _listAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _listController, curve: Curves.easeOutCubic),
-    );
-  }
-
-  void _initializeStations() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      _fadeController.forward();
-      await context.read<BusProvider>().getGPSData();
-      await context.read<BusProvider>().getBusStationList();
-      _listController.forward();
-    });
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    _listController.dispose();
-    super.dispose();
-  }
+  // 마지막으로 지도에 그린 정류장 리스트 (VM 리스트와 identical 비교로 갱신 감지)
+  List<BusStationModel> _renderedStations = const [];
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final readBusProvider = context.read<BusProvider>();
-    final watchBusProvider = context.watch<BusProvider>();
-    final readInitProvider = context.read<InitProvider>();
+    final vm = context.watch<StationSettingViewModel>();
+    final initialPosition = vm.initialPosition;
+
+    _syncMarkers(vm);
 
     return Scaffold(
       body: Container(
@@ -86,8 +67,12 @@ class _StationSettingViewState extends State<StationSettingView> with TickerProv
         child: SafeArea(
           child: Column(
             children: [
-              _buildHeader(colorScheme, watchBusProvider),
-              _buildStationList(colorScheme, watchBusProvider, readBusProvider, readInitProvider),
+              _buildHeader(colorScheme),
+              Expanded(
+                child: initialPosition == null
+                    ? _buildLocatingState(colorScheme)
+                    : _buildMapArea(colorScheme, vm, initialPosition),
+              ),
               const SizedBox(height: 16),
             ],
           ),
@@ -96,74 +81,45 @@ class _StationSettingViewState extends State<StationSettingView> with TickerProv
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme, watchBusProvider) {
+  Widget _buildHeader(ColorScheme colorScheme) {
     return Container(
       padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 16.0),
       child: Column(
         children: [
-          // Title Bar
           Row(
             children: [
               Expanded(
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: Text(
-                    "정류장 선택",
-                    style: context.textStyle.headlineMedium.copyWith(
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-              FadeTransition(
-                opacity: _fadeAnimation,
-                child: OutlinedButton.icon(
-                  onPressed: () => _refreshStations(watchBusProvider),
-                  icon: Icon(
-                    Icons.refresh_rounded,
-                    size: 18,
-                    color: colorScheme.primary,
-                  ),
-                  label: Text(
-                    "위치 재검색",
-                    style: context.textStyle.labelMedium.copyWith(
-                      color: colorScheme.primary,
-                    ),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.5)),
+                child: Text(
+                  "정류장 선택",
+                  style: context.textStyle.headlineMedium.copyWith(
+                    color: colorScheme.onSurface,
                   ),
                 ),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          // Status Card
-          FadeTransition(
-            opacity: _fadeAnimation,
-            child: Card.filled(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    Icon(
-                      watchBusProvider.busStationModel == null ? Icons.location_searching_rounded : Icons.location_on_rounded,
-                      size: 32,
-                      color: colorScheme.primary,
+          Card.filled(
+            color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.map_rounded,
+                    size: 32,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '지도를 움직여 정류장을 찾고\n마커를 눌러 선택해 주세요',
+                    style: context.textStyle.subtitleBoldMd.copyWith(
+                      color: colorScheme.onSurface,
+                      height: 1.4,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      watchBusProvider.busStationModel == null ? '현재 위치 500m 반경 내\n버스 정류장을 검색중입니다' : '자주 이용하는 정류장을 선택해 주세요',
-                      style: context.textStyle.subtitleBoldMd.copyWith(
-                        color: colorScheme.onSurface,
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
           ),
@@ -172,68 +128,199 @@ class _StationSettingViewState extends State<StationSettingView> with TickerProv
     );
   }
 
-  Widget _buildStationList(ColorScheme colorScheme, watchBusProvider, readBusProvider, readInitProvider) {
-    var busStationModel = watchBusProvider.busStationModel;
+  Widget _buildLocatingState(ColorScheme colorScheme) {
+    return Center(
+      child: BusPulseLoading.primary(
+        size: 40,
+        text: "현재 위치를 확인하고 있습니다...",
+        textStyle: context.textStyle.bodyMedium.copyWith(
+          color: colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
+      ),
+    );
+  }
 
-    return Expanded(
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24.0),
-        child: Column(
+  Widget _buildMapArea(ColorScheme colorScheme, StationSettingViewModel vm, MapPoint initialPosition) {
+    final notice = vm.noticeMessage ?? (vm.usedFallbackPosition ? '위치 권한이 없어 기본 위치를 표시합니다' : null);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: Stack(
           children: [
-            // List Header
-            FadeTransition(
-              opacity: _fadeAnimation,
-              child: Card.filled(
-                margin: const EdgeInsets.only(bottom: 4),
-                color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-                elevation: 0,
+            Positioned.fill(
+              child: NaverMap(
+                options: NaverMapViewOptions(
+                  initialCameraPosition: NCameraPosition(
+                    target: NLatLng(initialPosition.lat, initialPosition.lng),
+                    // 검색 반경 500m에 맞는 축척
+                    zoom: 16,
+                  ),
+                  mapType: NMapType.basic,
+                  activeLayerGroups: const [NLayerGroup.building, NLayerGroup.transit],
+                  locationButtonEnable: true,
+                ),
+                onMapReady: _onMapReady,
+                onMapTapped: (point, latLng) => context.read<StationSettingViewModel>().clearSelection(),
+              ),
+            ),
+            if (!_isMapReady)
+              Positioned.fill(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                  child: Row(
+                  color: colorScheme.surfaceContainerHighest,
+                  child: Center(
+                    child: BusPulseLoading.primary(
+                      size: 40,
+                      text: '지도를 불러오는 중...',
+                      textStyle: context.textStyle.bodyMedium.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            // 상단 중앙: 이 지역에서 검색 버튼
+            Positioned(
+              top: 12,
+              left: 0,
+              right: 0,
+              child: Center(child: _buildSearchButton(colorScheme, vm)),
+            ),
+            // 안내 칩 (검색 실패/빈 결과/기본 위치)
+            if (notice != null)
+              Positioned(
+                top: 64,
+                left: 0,
+                right: 0,
+                child: Center(child: _buildNoticeChip(colorScheme, notice)),
+              ),
+            // 하단: 선택한 정류장 확인 카드
+            if (vm.selectedStation != null)
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 12,
+                child: _buildSelectionCard(colorScheme, vm.selectedStation!),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchButton(ColorScheme colorScheme, StationSettingViewModel vm) {
+    return FilledButton.icon(
+      onPressed: vm.isSearching ? null : _searchThisArea,
+      icon: vm.isSearching
+          ? SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: colorScheme.onPrimary,
+              ),
+            )
+          : const Icon(Icons.refresh_rounded, size: 18),
+      label: Text(
+        vm.isSearching ? '검색 중...' : '이 지역에서 검색',
+        style: context.textStyle.labelLarge.copyWith(
+          color: colorScheme.onPrimary,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+      style: FilledButton.styleFrom(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
+  }
+
+  Widget _buildNoticeChip(ColorScheme colorScheme, String notice) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: colorScheme.inverseSurface.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Text(
+        notice,
+        style: context.textStyle.caption.copyWith(
+          color: colorScheme.onInverseSurface,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSelectionCard(ColorScheme colorScheme, BusStationModel station) {
+    return Card(
+      elevation: 4,
+      color: colorScheme.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.directions_bus,
+                    color: colorScheme.primary,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.format_list_bulleted,
-                        size: 20,
-                        color: colorScheme.primary,
+                      Text(
+                        station.stationName,
+                        style: context.textStyle.subtitle.copyWith(color: colorScheme.onSurface),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        flex: 3,
-                        child: Text(
-                          "정류장 목록",
-                          style: context.textStyle.labelLarge.copyWith(
-                            color: colorScheme.onPrimaryContainer,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: colorScheme.primary.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          "거리순",
-                          style: context.textStyle.caption.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w500,
-                          ),
+                      const SizedBox(height: 2),
+                      Text(
+                        "ID: ${station.mobileNo}",
+                        style: context.textStyle.caption.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
+              ],
             ),
-            // List Content
-            Expanded(
-              child: Card.outlined(
-                margin: EdgeInsets.zero,
-                elevation: 0,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: busStationModel == null ? _buildLoadingState(colorScheme) : _buildStationListView(busStationModel, colorScheme, readBusProvider, readInitProvider),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => _confirmStation(station),
+                icon: const Icon(Icons.check_circle, size: 20),
+                label: Text(
+                  '이 정류장 선택',
+                  style: context.textStyle.labelLarge.copyWith(
+                    color: colorScheme.onPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.primary,
+                  foregroundColor: colorScheme.onPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
@@ -243,110 +330,95 @@ class _StationSettingViewState extends State<StationSettingView> with TickerProv
     );
   }
 
-  Widget _buildLoadingState(ColorScheme colorScheme) {
-    return Center(
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: BusPulseLoading.primary(
-          size: 40,
-          text: "정류장을 찾고 있습니다...",
-          textStyle: context.textStyle.bodyMedium.copyWith(
-            color: colorScheme.onSurface.withValues(alpha: 0.7),
+  void _onMapReady(NaverMapController controller) {
+    _mapController = controller;
+    final vm = context.read<StationSettingViewModel>();
+    // 현위치 오버레이 표시 (카메라는 따라가지 않음). 위치 권한이 없으면 생략
+    if (!vm.usedFallbackPosition) {
+      controller.setLocationTrackingMode(NLocationTrackingMode.noFollow);
+    }
+    setState(() {
+      _isMapReady = true;
+    });
+    _syncMarkers(vm);
+  }
+
+  // "이 지역에서 검색": 지도 중심 좌표 기준으로 재검색
+  Future<void> _searchThisArea() async {
+    final controller = _mapController;
+    if (controller == null) return;
+    final vm = context.read<StationSettingViewModel>();
+    final cameraPosition = await controller.getCameraPosition();
+    await vm.searchAround((
+      lat: cameraPosition.target.latitude,
+      lng: cameraPosition.target.longitude,
+    ));
+  }
+
+  // VM의 정류장 리스트가 바뀌면 지도 마커를 다시 그린다
+  Future<void> _syncMarkers(StationSettingViewModel vm) async {
+    final controller = _mapController;
+    if (controller == null || identical(_renderedStations, vm.stations)) return;
+    final stations = vm.stations;
+    _renderedStations = stations;
+    final colorScheme = Theme.of(context).colorScheme;
+
+    _markerIcon ??= await NOverlayImage.fromWidget(
+      widget: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: colorScheme.primary,
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white, width: 3),
+        ),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            shape: BoxShape.circle,
+          ),
+          margin: const EdgeInsets.all(6),
+          child: Icon(
+            Icons.location_on,
+            color: colorScheme.primary,
+            size: 16,
           ),
         ),
       ),
+      size: const Size(36, 36),
+      context: context,
     );
+
+    await controller.clearOverlays();
+    for (final station in stations) {
+      final lat = double.tryParse(station.y);
+      final lng = double.tryParse(station.x);
+      if (lat == null || lng == null) continue;
+
+      final marker = NMarker(
+        id: 'station_${station.stationId}',
+        position: NLatLng(lat, lng),
+      );
+      marker.setIcon(_markerIcon!);
+      marker.setCaption(NOverlayCaption(
+        text: _captionText(station.stationName),
+        color: colorScheme.onSurface,
+        haloColor: Colors.white,
+        textSize: 12,
+      ));
+      marker.setOnTapListener((_) => vm.selectStation(station));
+      await controller.addOverlay(marker);
+    }
   }
 
-  Widget _buildStationListView(busStationModel, ColorScheme colorScheme, readBusProvider, readInitProvider) {
-    return AnimatedBuilder(
-      animation: _listAnimation,
-      builder: (context, child) {
-        return ListView.builder(
-          physics: const ClampingScrollPhysics(),
-          itemCount: busStationModel.length,
-          itemBuilder: (context, index) {
-            var item = busStationModel[index];
-            return Transform.translate(
-              offset: Offset(0, 50 * (1 - _listAnimation.value)),
-              child: Opacity(
-                opacity: _listAnimation.value,
-                child: Card.outlined(
-                  margin: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 2.0),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () async {
-                      final shouldSelect = await showDialog<bool>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (context) => StationMapDialog(station: item),
-                      );
-
-                      if (shouldSelect == true) {
-                        readBusProvider.setSelectedStationModel(item);
-                        readInitProvider.nextAccountView();
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        children: [
-                          // Station Info (확장)
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              spacing: 8,
-                              children: [
-                                Text(
-                                  item.stationName,
-                                  style: context.textStyle.subtitle.copyWith(color: colorScheme.onSurface),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  "ID: ${item.mobileNo}",
-                                  style: context.textStyle.caption.copyWith(
-                                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Distance Info
-                          Expanded(
-                            flex: 1,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.location_on_outlined, size: 16, color: colorScheme.primary),
-                                const SizedBox(width: 4),
-                                Text(
-                                  "${item.distance}m",
-                                  style: context.textStyle.labelMedium.copyWith(color: colorScheme.primary),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+  // 긴 정류장 이름은 캡션에서 말줄임 (전체 이름은 선택 카드에 표시됨)
+  String _captionText(String name) {
+    const maxLength = 10;
+    return name.length > maxLength ? '${name.substring(0, maxLength)}…' : name;
   }
 
-  Future<void> _refreshStations(watchBusProvider) async {
-    watchBusProvider.busStationModel = null;
-    _listController.reset();
-    await context.read<BusProvider>().getGPSData();
-    await context.read<BusProvider>().getBusStationList();
-    _listController.forward();
+  void _confirmStation(BusStationModel station) {
+    context.read<BusProvider>().setSelectedStationModel(station);
+    context.read<InitProvider>().nextAccountView();
   }
 }

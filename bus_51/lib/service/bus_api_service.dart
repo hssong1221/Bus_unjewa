@@ -61,7 +61,13 @@ class BusApiService {
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> resultList = makeListForm(response.data["response"]["msgBody"]["busStationAroundList"]);
+        // 주변에 정류장이 없으면 msgBody가 null로 내려옴
+        final msgBody = response.data["response"]["msgBody"];
+        if (msgBody == null || msgBody["busStationAroundList"] == null) {
+          return [];
+        }
+
+        List<dynamic> resultList = makeListForm(msgBody["busStationAroundList"]);
         var entitiesList = resultList.map((json) => BusStationEntity.fromJson(json)).toList();
         var modelList = BusStationMapper.fromEntityList(entitiesList);
         return modelList;
