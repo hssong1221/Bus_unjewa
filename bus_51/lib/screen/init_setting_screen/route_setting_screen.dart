@@ -2,6 +2,7 @@ import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/repository/bus_route_repository.dart';
+import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/route_setting_view_model.dart';
@@ -85,18 +86,7 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.08),
-              colorScheme.secondary.withValues(alpha: 0.04),
-              colorScheme.surface,
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
+        decoration: appBackgroundDecoration(colorScheme),
         child: SafeArea(
           child: FadeTransition(
             opacity: _fadeAnimation,
@@ -133,7 +123,7 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
         children: [
           // Title Section
           Container(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -145,96 +135,12 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  '이용하실 버스 노선을 선택해주세요',
+                  stationName != null ? "'$stationName' 정류장을 지나는 노선이에요" : '이용하실 버스 노선을 선택해주세요',
                   style: context.textStyle.bodyLarge.copyWith(
                     color: colorScheme.onSurface.withValues(alpha: 0.7),
                   ),
-                ),
-              ],
-            ),
-          ),
-          // Header Info Card
-          Container(
-            margin: const EdgeInsets.only(bottom: 8),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: colorScheme.outline.withValues(alpha: 0.2),
-              ),
-            ),
-            child: Column(
-              children: [
-                // 선택한 정류장
-                Row(
-                  children: [
-                    Icon(
-                      Icons.location_on,
-                      size: 20,
-                      color: colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        stationName ?? '선택된 정류장 없음',
-                        style: context.textStyle.labelLarge.copyWith(
-                          color: colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w700,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    // 노선정보 부분
-                    Expanded(
-                      flex: 2,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.route,
-                            size: 20,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "노선 정보",
-                            style: context.textStyle.labelLarge.copyWith(
-                              color: colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // 운행방향 부분
-                    Expanded(
-                      flex: 3,
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 18,
-                            color: colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "운행 방향",
-                            style: context.textStyle.labelLarge.copyWith(
-                              color: colorScheme.onPrimaryContainer,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),

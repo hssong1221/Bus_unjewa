@@ -33,16 +33,8 @@ class BusProvider extends ChangeNotifier {
   List<BusRouteStationModel>? _busRouteStationModel;
   BusRouteStationModel? _selectedBusRouteStationModel;
 
-  BusRouteStationModel? _prevStationModel;
-  BusRouteStationModel? _curStationModel;
-  BusRouteStationModel? _nextStationModel;
-
   List<BusRouteStationModel>? get busRouteStationModel => _busRouteStationModel;
   BusRouteStationModel? get selectedBusRouteStationModel => _selectedBusRouteStationModel;
-
-  BusRouteStationModel? get prevStationModel => _prevStationModel;
-  BusRouteStationModel? get curStationModel => _curStationModel;
-  BusRouteStationModel? get nextStationModel => _nextStationModel;
 
   // 정류장 리스트에서 선택
   void setSelectedStationModel(BusStationModel model) {
@@ -56,33 +48,6 @@ class BusProvider extends ChangeNotifier {
     _selectedRouteModel = model;
     //debugPrint("${model.stationName} ${model.stationId}");
     notifyListeners();
-  }
-
-  // 전 현 다음, 정류장 넣기
-  void setUserStation() {
-    int staOrder = int.parse(_selectedRouteModel!.staOrder);
-
-    if (_busRouteStationModel == null) {
-      return;
-    } else {
-      _curStationModel = _busRouteStationModel![staOrder - 1];
-
-      if (staOrder == 1) {
-        _prevStationModel = null;
-        _nextStationModel = _busRouteStationModel![staOrder];
-      } else if (staOrder == _busRouteStationModel!.length) {
-        _prevStationModel = _busRouteStationModel![staOrder - 2];
-        _nextStationModel = null;
-      } else {
-        _prevStationModel = _busRouteStationModel![staOrder - 2];
-        _nextStationModel = _busRouteStationModel![staOrder];
-      }
-    }
-  }
-
-  // 유저가 선택한 노선 저장
-  Future<void> saveUserDataList(UserSaveModel order) async {
-    await _storageService.addUserSaveModel(order);
   }
 
   /*UserSaveModel loadUserData() {
@@ -250,7 +215,6 @@ class BusProvider extends ChangeNotifier {
 
     try {
       _busRouteStationModel = await _busApiServices.getBusRouteStationList(routeId: routeId ?? "208000017");
-      setUserStation();
     } on ApiException catch (e) {
       debugPrint(e.toString());
     } finally {
