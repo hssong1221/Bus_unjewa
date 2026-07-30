@@ -1,3 +1,4 @@
+import 'package:bus_51/utils/safe_string_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'bus_routestation_entity.freezed.dart';
@@ -12,6 +13,7 @@ part 'bus_routestation_entity.g.dart';
 // --------------------------------------------------
 @Freezed()
 sealed class BusRouteStationEntity with _$BusRouteStationEntity {
+  @SafeStringConverter()
   const factory BusRouteStationEntity({
     @Default('') String centerYn,
     @Default('') String districtCd,

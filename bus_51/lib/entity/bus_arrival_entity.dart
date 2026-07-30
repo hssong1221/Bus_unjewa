@@ -1,3 +1,4 @@
+import 'package:bus_51/utils/safe_string_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'bus_arrival_entity.freezed.dart';
@@ -12,6 +13,7 @@ part 'bus_arrival_entity.g.dart';
 // --------------------------------------------------
 @Freezed()
 sealed class BusArrivalEntity with _$BusArrivalEntity {
+  @SafeStringConverter()
   const factory BusArrivalEntity({
     @Default('') String crowded1,
     @Default('') String crowded2,

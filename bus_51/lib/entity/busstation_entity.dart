@@ -1,3 +1,4 @@
+import 'package:bus_51/utils/safe_string_converter.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 part 'busstation_entity.freezed.dart';
@@ -12,6 +13,7 @@ part 'busstation_entity.g.dart';
 // --------------------------------------------------
 @Freezed()
 sealed class BusStationEntity with _$BusStationEntity {
+  @SafeStringConverter()
   const factory BusStationEntity({
     @Default('') String centerYn,
     @Default('') String mobileNo,    // 정류소 번호
