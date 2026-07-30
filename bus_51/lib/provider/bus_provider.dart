@@ -1,5 +1,4 @@
 import 'package:bus_51/enums/bus_enums.dart';
-import 'package:bus_51/model/bus_arrival_model.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/model/busstation_model.dart';
@@ -61,16 +60,6 @@ class BusProvider extends ChangeNotifier {
   BusRouteStationModel? get prevStationModel => _prevStationModel;
   BusRouteStationModel? get curStationModel => _curStationModel;
   BusRouteStationModel? get nextStationModel => _nextStationModel;
-
-  // bus with arrival time model
-  BusArrivalModel? _busArrivalModel;
-
-  BusArrivalModel? get busArrivalModel => _busArrivalModel;
-
-  // 버스 운행 상태
-  bool _isBusOperating = true; // 버스가 운행 중인지 여부
-
-  bool get isBusOperating => _isBusOperating;
 
   // 정류장 리스트에서 선택
   void setSelectedStationModel(BusStationModel model) {
@@ -320,28 +309,6 @@ class BusProvider extends ChangeNotifier {
       setUserStation();
     } on ApiException catch (e) {
       debugPrint(e.toString());
-    } finally {
-      notifyListeners();
-    }
-  }
-
-  // 유저가 선택한 정류장과 노선에 맞는 버스 도착정보 가져오기
-  Future<void> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
-    try {
-      _busArrivalModel = await _busApiServices.getBusArrivalTimeList(
-        stationId: stationId,
-        routeId: routeId,
-        staOrder: staOrder,
-      );
-
-      // 버스 운행 상태 업데이트
-      _isBusOperating = _busArrivalModel != null;
-
-    } on ApiException catch (e) {
-      debugPrint(e.toString());
-      // API 에러 시에도 운행 상태 false로 설정
-      _isBusOperating = false;
-      _busArrivalModel = null;
     } finally {
       notifyListeners();
     }

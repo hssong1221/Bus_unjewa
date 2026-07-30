@@ -1,4 +1,5 @@
 import 'package:bus_51/provider/bus_provider.dart';
+import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/router/router.dart';
 import 'package:bus_51/service/bus_api_service.dart';
 import 'package:bus_51/service/dio_singleton.dart';
@@ -10,15 +11,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:get_it/get_it.dart';
-import 'package:get_storage/get_storage.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 GetIt getIt = GetIt.I;
 
-void setUp() {
+void setUp(SharedPreferencesWithCache prefs) {
   getIt.registerLazySingleton<BusApiService>(() => BusApiService());
-  getIt.registerLazySingleton<StorageService>(() => StorageService());
+  getIt.registerLazySingleton<StorageService>(() => StorageService(prefs));
+  getIt.registerLazySingleton<BusArrivalRepository>(() => BusArrivalRepository(getIt<BusApiService>()));
 }
 
 void main() async {
@@ -30,7 +32,10 @@ void main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  setUp();
+  final prefs = await SharedPreferencesWithCache.create(
+    cacheOptions: const SharedPreferencesWithCacheOptions(),
+  );
+  setUp(prefs);
 
   /// Dio
   final Dio dio = DioSingleton.getInstance();
@@ -46,8 +51,6 @@ void main() async {
       maxWidth: 160,
     ));
   }
-
-  await GetStorage.init();
 
   await FlutterNaverMap().init(
       clientId:"573iatcw1j",

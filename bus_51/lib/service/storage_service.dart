@@ -1,43 +1,38 @@
+import 'dart:convert';
+
 import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/user_save_model.dart';
-import 'package:bus_51/service/dio_singleton.dart';
-import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
-import 'package:get_storage/get_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StorageService {
-  final Dio _dio = DioSingleton.getInstance();
-  final GetStorage box = GetStorage();
+  StorageService(this._prefs);
+
+  /// 캐시 기반이라 읽기는 동기, 쓰기는 캐시 즉시 반영 후 비동기 영속화
+  final SharedPreferencesWithCache _prefs;
+
+  static const String _userSaveKey = 'user_save_data';
 
   //delete
   void deleteUserData() {
-    box.remove("user_save_data");
+    _prefs.remove(_userSaveKey);
   }
 
   //save
-  /*Future<void> _saveUserModel(UserSaveModel order) async {
-    await box.write('user_save_data', order.toMap());
-  }*/
-
   Future<void> _saveUserModelList(List<UserSaveModel> users) async {
-    final userListMap = users.map((user) => user.toMap()).toList();
-    await box.write('user_save_data', userListMap);
+    final userListJson = jsonEncode(users.map((user) => user.toMap()).toList());
+    await _prefs.setString(_userSaveKey, userListJson);
   }
 
   // load
- /* UserSaveModel? loadUserModel() {
-    final map = box.read('user_save_data');
-    if (map != null) {
-      return UserSaveModel.fromMap(Map<String, dynamic>.from(map));
-    }
-    return null;
-  }*/
-
   List<UserSaveModel> loadUserModelList() {
-    final list = box.read('user_save_data');
-    debugPrint(list.toString());
+    final jsonString = _prefs.getString(_userSaveKey);
+    debugPrint(jsonString);
 
-    if (list != null && list is List) {
+    if (jsonString == null) return [];
+
+    final list = jsonDecode(jsonString);
+    if (list is List) {
       return list
           .map((item) => UserSaveModel.fromMap(Map<String, dynamic>.from(item)))
           .toList();
@@ -67,23 +62,23 @@ class StorageService {
   // 선택한 인덱스들 삭제
   Future<void> removeItems(List<int> indices) async {
     final list = loadUserModelList();
-    
+
     // 인덱스를 역순으로 정렬해서 삭제 (높은 인덱스부터 삭제해야 인덱스 꼬임 방지)
     final sortedIndices = indices.toList()..sort((a, b) => b.compareTo(a));
-    
+
     for (int index in sortedIndices) {
       if (index >= 0 && index < list.length) {
         list.removeAt(index);
       }
     }
-    
+
     await _saveUserModelList(list);
   }
 
   // 특정 인덱스의 버스 타입 변경
   Future<void> updateBusType(int index, BusType newBusType) async {
     final list = loadUserModelList();
-    
+
     if (index >= 0 && index < list.length) {
       // 기존 데이터를 복사하고 busType만 변경
       final updatedUser = list[index].copyWith(busType: newBusType);
