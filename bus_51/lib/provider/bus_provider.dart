@@ -25,10 +25,8 @@ class BusProvider extends ChangeNotifier {
   Map<String, String> get data => _data ?? {};
 
   // bus route model
-  List<BusRouteModel>? _busRouteModel;
   BusRouteModel? _selectedRouteModel;
 
-  List<BusRouteModel>? get busRouteModel => _busRouteModel;
   BusRouteModel? get selectedRouteModel => _selectedRouteModel;
 
   // route with Station model
@@ -246,19 +244,6 @@ class BusProvider extends ChangeNotifier {
   // -------
   // API 연결
   // -------
-  // 버스 정류장을 지나가는 노선 데이터 가져오기
-  Future<void> getBusRouteList() async {
-    String? stationId = _selectedStationModel?.stationId.toString();
-
-    try {
-      _busRouteModel = await _busApiServices.getBusRouteList(stationId: stationId ?? "226000060");
-    } on ApiException catch (e) {
-      debugPrint(e.toString());
-    } finally {
-      notifyListeners();
-    }
-  }
-
   // 노선이 지나가는 정류장 데이터 가져오기
   Future<void> getRouteStationList() async {
     String? routeId = _selectedRouteModel?.routeId.toString();

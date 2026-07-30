@@ -103,7 +103,13 @@ class BusApiService {
       );
 
       if (response.statusCode == 200) {
-        List<dynamic> resultList = makeListForm(response.data["response"]["msgBody"]["busRouteList"]);
+        // 경유 노선이 없는 정류장이면 msgBody가 null로 내려옴
+        final msgBody = response.data["response"]["msgBody"];
+        if (msgBody == null || msgBody["busRouteList"] == null) {
+          return [];
+        }
+
+        List<dynamic> resultList = makeListForm(msgBody["busRouteList"]);
         var entitiesList = resultList.map((json) => BusRouteEntity.fromJson(json)).toList();
         var modelList = BusRouteMapper.fromEntityList(entitiesList);
         return modelList;
