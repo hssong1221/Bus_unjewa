@@ -1,5 +1,6 @@
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -70,18 +71,7 @@ class _ExplainScreenViewState extends State<ExplainScreenView> with TickerProvid
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.1),
-              colorScheme.secondary.withValues(alpha: 0.05),
-              colorScheme.surface,
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
+        decoration: appBackgroundDecoration(colorScheme),
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),

@@ -1,4 +1,5 @@
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -88,17 +89,7 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
       child: Scaffold(
         backgroundColor: colorScheme.surface,
         body: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.primary.withValues(alpha: 0.05),
-                colorScheme.secondary.withValues(alpha: 0.03),
-                colorScheme.surface,
-              ],
-            ),
-          ),
+          decoration: appBackgroundDecoration(colorScheme),
           child: Column(
             children: [
               // Progress Indicator
@@ -162,23 +153,7 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                                           widthFactor: progress,
                                           child: Container(
                                             height: double.infinity,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  colorScheme.primary.withValues(alpha: 0.8),
-                                                  colorScheme.primary,
-                                                  colorScheme.secondary,
-                                                ],
-                                                stops: const [0.0, 0.7, 1.0],
-                                              ),
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: colorScheme.primary.withValues(alpha: 0.3),
-                                                  blurRadius: 6,
-                                                  spreadRadius: 0,
-                                                ),
-                                              ],
-                                            ),
+                                            color: colorScheme.primary,
                                           ),
                                         );
                                       },

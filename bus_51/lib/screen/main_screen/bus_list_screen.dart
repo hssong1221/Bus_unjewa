@@ -252,13 +252,13 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 18),
           decoration: BoxDecoration(
-            color: isSelected 
-                ? Colors.teal.withValues(alpha: 0.15)
+            color: isSelected
+                ? colorScheme.primary.withValues(alpha: 0.12)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isSelected 
-                  ? Colors.teal.withValues(alpha: 0.7)
+              color: isSelected
+                  ? colorScheme.primary
                   : colorScheme.outline.withValues(alpha: 0.3),
               width: isSelected ? 2 : 1,
             ),
@@ -266,10 +266,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           child: Text(
             title,
             style: context.textStyle.labelLarge.copyWith(
-              color: isSelected 
-                  ? Colors.white
+              color: isSelected
+                  ? colorScheme.primary
                   : colorScheme.onSurface.withValues(alpha: 0.5),
-              fontWeight: FontWeight.w600,
+              fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
@@ -334,10 +334,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isSelected ? busColor.withValues(alpha: 0.1) : colorScheme.surface,
+              color: isSelected ? colorScheme.primary.withValues(alpha: 0.08) : colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
-                color: isSelected ? busColor : busColor.withValues(alpha: 0.3),
+                color: isSelected ? colorScheme.primary : colorScheme.outline.withValues(alpha: 0.2),
                 width: isSelected ? 2 : 1,
               ),
               boxShadow: [
@@ -358,10 +358,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: isSelected ? busColor : colorScheme.outline,
+                        color: isSelected ? colorScheme.primary : colorScheme.outline,
                         width: 2,
                       ),
-                      color: isSelected ? busColor : Colors.transparent,
+                      color: isSelected ? colorScheme.primary : Colors.transparent,
                     ),
                     child: isSelected
                         ? const Icon(

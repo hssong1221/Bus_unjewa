@@ -2,6 +2,7 @@ import 'package:bus_51/model/busstation_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/repository/bus_station_repository.dart';
+import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/viewmodel/station_setting_view_model.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
@@ -61,18 +62,7 @@ class _StationMapViewState extends State<_StationMapView> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              colorScheme.primary.withValues(alpha: 0.08),
-              colorScheme.secondary.withValues(alpha: 0.04),
-              colorScheme.surface,
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
+        decoration: appBackgroundDecoration(colorScheme),
         child: SafeArea(
           child: Column(
             children: [
@@ -109,7 +99,7 @@ class _StationMapViewState extends State<_StationMapView> {
           ),
           const SizedBox(height: 16),
           Card.filled(
-            color: colorScheme.primaryContainer.withValues(alpha: 0.3),
+            color: colorScheme.surfaceContainer,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(

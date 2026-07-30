@@ -4,6 +4,7 @@ import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
+import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
@@ -182,18 +183,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       child: Scaffold(
         body: Container(
           height: MediaQuery.of(context).size.height,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                busColor.withValues(alpha: 0.08), // 버스 색상으로 그라데이션
-                busColor.withValues(alpha: 0.02),
-                colorScheme.surface,
-              ],
-              stops: const [0.0, 0.5, 1.0],
-            ),
-          ),
+          decoration: appBackgroundDecoration(colorScheme),
           child: SafeArea(
             child: FadeTransition(
               opacity: _fadeAnimation,
@@ -246,16 +236,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
   Widget _buildLoadingState(ColorScheme colorScheme, Color busColor) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              busColor.withValues(alpha: 0.1),
-              colorScheme.surface,
-            ],
-          ),
-        ),
+        decoration: appBackgroundDecoration(colorScheme),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -292,16 +273,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
   Widget _buildNoBusOperatingState(ColorScheme colorScheme, Color busColor, UserSaveModel userModel) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              busColor.withValues(alpha: 0.1),
-              colorScheme.surface,
-            ],
-          ),
-        ),
+        decoration: appBackgroundDecoration(colorScheme),
         child: SafeArea(
           child: Column(
             children: [
@@ -386,12 +358,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                             ),
                           ),
                           style: FilledButton.styleFrom(
-                            backgroundColor: busColor,
-                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
                           ),
                         ),
                       ),
@@ -415,16 +382,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
   }) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              busColor.withValues(alpha: 0.1),
-              colorScheme.surface,
-            ],
-          ),
-        ),
+        decoration: appBackgroundDecoration(colorScheme),
         child: SafeArea(
           child: Column(
             children: [
@@ -533,11 +491,11 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: busColor.withValues(alpha: 0.3), // 버스 색상으로 테두리
+          color: colorScheme.outline.withValues(alpha: 0.2),
         ),
         boxShadow: [
           BoxShadow(
-            color: busColor.withValues(alpha: 0.15), // 버스 색상으로 그림자
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 16,
             offset: const Offset(0, 4),
           ),
@@ -648,10 +606,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
               decoration: BoxDecoration(
-                color: busColor.withValues(alpha: 0.08),
+                color: colorScheme.onSurface.withValues(alpha: 0.04),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: busColor.withValues(alpha: 0.2),
+                  color: colorScheme.outline.withValues(alpha: 0.2),
                   width: 1,
                 ),
               ),
@@ -660,21 +618,21 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 children: [
                   Icon(
                     Icons.timeline,
-                    color: busColor,
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
                     size: 24,
                   ),
                   const SizedBox(width: 12),
                   Text(
                     '전체 노선 보기',
                     style: context.textStyle.titleMedium.copyWith(
-                      color: busColor,
+                      color: colorScheme.onSurface.withValues(alpha: 0.75),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                   const SizedBox(width: 8),
                   Icon(
                     Icons.keyboard_arrow_down,
-                    color: busColor,
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
                     size: 20,
                   ),
                 ],
@@ -696,10 +654,10 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: busColor.withValues(alpha: 0.3)),
+          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
-              color: busColor.withValues(alpha: 0.15),
+              color: colorScheme.shadow.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 4),
             ),
@@ -714,7 +672,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 Text(
                   '전체 노선',
                   style: context.textStyle.titleLarge.copyWith(
-                    color: busColor,
+                    color: colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -726,7 +684,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
               ],
             ),
             const SizedBox(height: 16),
-            Divider(color: busColor.withValues(alpha: 0.2)),
+            Divider(color: colorScheme.outlineVariant),
             const SizedBox(height: 16),
             // 타임라인 리스트
             Expanded(
@@ -783,8 +741,8 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
             SizedBox(
               width: 200,
               child: LinearProgressIndicator(
-                backgroundColor: busColor.withValues(alpha: 0.2),
-                valueColor: AlwaysStoppedAnimation<Color>(busColor),
+                backgroundColor: colorScheme.surfaceContainerHighest,
+                valueColor: AlwaysStoppedAnimation<Color>(colorScheme.primary),
               ),
             ),
           ],
@@ -882,10 +840,11 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
     required ColorScheme colorScheme,
     required Color busColor,
   }) {
+    // 현재 정류장·버스 위치만 노선 색 포인트, 나머지는 무채색
     Color getStationColor() {
       if (isCurrentStation) return busColor;
-      if (isDestination) return busColor.withValues(alpha: 0.8);
-      return busColor.withValues(alpha: 0.6);
+      if (isDestination) return colorScheme.onSurface.withValues(alpha: 0.75);
+      return colorScheme.onSurface.withValues(alpha: 0.45);
     }
 
     // 버스가 있는 정류장의 배경색
@@ -914,7 +873,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                   painter: TimelinePainter(
                     isFirst: index == 0,
                     isLast: isLast,
-                    color: busColor,
+                    color: colorScheme.outline,
                   ),
                   size: const Size(50, 60),
                 ),
@@ -924,10 +883,12 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                     width: isCurrentStation || hasBus1 || hasBus2 ? 20 : 16,
                     height: isCurrentStation || hasBus1 || hasBus2 ? 20 : 16,
                     decoration: BoxDecoration(
-                      color: isCurrentStation || isDestination || hasBus1 || hasBus2 ? getStationColor() : colorScheme.surface,
+                      color: hasBus1 || hasBus2
+                          ? busColor
+                          : (isCurrentStation || isDestination ? getStationColor() : colorScheme.surface),
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: getStationColor(),
+                        color: hasBus1 || hasBus2 ? busColor : getStationColor(),
                         width: isCurrentStation ? 3 : 2,
                       ),
                       boxShadow: isCurrentStation
@@ -1074,7 +1035,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
                   decoration: BoxDecoration(
-                    color: isNext ? color : colorScheme.surfaceVariant,
+                    color: isNext ? color : colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
