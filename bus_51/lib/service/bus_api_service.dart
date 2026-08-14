@@ -15,8 +15,6 @@ import 'package:bus_51/utils/api_exception.dart';
 import 'package:bus_51/utils/contants.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
-import 'package:http/http.dart' as http;
-import 'package:xml/xml.dart' as xml;
 
 class BusApiService {
   final Dio _dio = DioSingleton.getInstance();
@@ -255,37 +253,4 @@ class BusApiService {
     }
   }
 
-  //xml 사용해서 만든 옛날 버전
-  Future<Map<String, String>> getBusData() async {
-    final parameter = {
-      'serviceKey': "",
-      'stationId': "",
-      'routeId': "",
-      'staOrder': "",
-    };
-
-    final uri = Uri.https('apis.data.go.kr', '/6410000/busarrivalservice/getBusArrivalItem', parameter);
-    final response = await http.get(uri);
-
-    if (response.statusCode == 200) {
-      final xmlDoc = xml.XmlDocument.parse(response.body);
-
-      debugPrint(xmlDoc.toString());
-
-      // busArrivalItem 요소 찾기
-      final busArrivalItem = xmlDoc.findAllElements('busArrivalItem').first;
-
-      Map<String, String> dataMap = {};
-
-      for (var item in busArrivalItem.children) {
-        if (item is xml.XmlElement) {
-          dataMap[item.name.local] = item.innerText;
-          debugPrint(item.innerText);
-        }
-      }
-      return dataMap;
-    } else {
-      throw Exception('Failed to load data');
-    }
-  }
 }
