@@ -1,7 +1,9 @@
 import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/bus_arrival_model.dart';
+import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
+import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/utils/api_exception.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
 import 'package:fake_async/fake_async.dart';
@@ -26,13 +28,61 @@ class FakeBusArrivalRepository implements BusArrivalRepository {
   }
 }
 
-UserSaveModel makeUser() => const UserSaveModel(
+class FakeBusRouteStationRepository implements BusRouteStationRepository {
+  FakeBusRouteStationRepository({this.stations = const [], this.exception});
+
+  List<BusRouteStationModel> stations;
+  ApiException? exception;
+  int callCount = 0;
+
+  @override
+  Future<List<BusRouteStationModel>> getStationsOnRoute({required String routeId}) async {
+    callCount++;
+    if (exception != null) throw exception!;
+    return stations;
+  }
+}
+
+/// staOrder(=탑승 정류장의 stationSeq) 기본값은 3
+UserSaveModel makeUser({int staOrder = 3}) => UserSaveModel(
       routeName: '51',
       stationId: 226000060,
       routeId: 208000017,
-      staOrder: 1,
+      staOrder: staOrder,
       routeTypeCd: 13,
       busType: BusType.none,
+    );
+
+BusRouteStationModel makeRouteStation(int seq) => BusRouteStationModel(
+      centerYn: 'N',
+      districtCd: '1',
+      mobileNo: '0$seq',
+      regionName: '수원',
+      stationId: '22600006$seq',
+      stationName: '정류장$seq',
+      x: '127.0',
+      y: '37.0',
+      adminName: '수원시',
+      stationSeq: '$seq',
+      turnSeq: '10',
+      turnYn: 'N',
+    );
+
+List<BusRouteStationModel> makeRouteStations(int count) =>
+    [for (int i = 1; i <= count; i++) makeRouteStation(i)];
+
+/// 테스트에서 반복되는 VM 생성. 타임라인을 쓰지 않는 테스트는 두 번째 인자를 생략한다
+BusMainViewModel makeViewModel(
+  BusArrivalRepository arrivalRepository, {
+  BusRouteStationRepository? routeStationRepository,
+  List<UserSaveModel>? savedBuses,
+  int index = 0,
+}) =>
+    BusMainViewModel(
+      arrivalRepository,
+      routeStationRepository ?? FakeBusRouteStationRepository(),
+      savedBuses: savedBuses ?? [makeUser()],
+      index: index,
     );
 
 BusArrivalModel makeArrival({String sec1 = '120', String sec2 = '300'}) => BusArrivalModel(
@@ -53,11 +103,7 @@ BusArrivalModel makeArrival({String sec1 = '120', String sec2 = '300'}) => BusAr
 void main() {
   group('BusMainViewModel', () {
     test('저장된 버스가 없으면(인덱스 범위 밖) 크래시 대신 에러 상태가 된다', () async {
-      final vm = BusMainViewModel(
-        FakeBusArrivalRepository(),
-        savedBuses: [],
-        index: 0,
-      );
+      final vm = makeViewModel(FakeBusArrivalRepository(), savedBuses: []);
 
       await vm.init();
 
@@ -67,7 +113,7 @@ void main() {
 
     test('조회 성공 시 Success 상태 + 카운트다운 초기값 세팅', () async {
       final repo = FakeBusArrivalRepository(arrival: makeArrival(sec1: '120', sec2: '300'));
-      final vm = BusMainViewModel(repo, savedBuses: [makeUser()], index: 0);
+      final vm = makeViewModel(repo);
 
       await vm.init();
 
@@ -79,11 +125,7 @@ void main() {
     });
 
     test('도착 정보가 없으면(null) 미운행 상태가 된다', () async {
-      final vm = BusMainViewModel(
-        FakeBusArrivalRepository(arrival: null),
-        savedBuses: [makeUser()],
-        index: 0,
-      );
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: null));
 
       await vm.init();
 
@@ -93,11 +135,7 @@ void main() {
     });
 
     test('ApiException 발생 시 에러 상태 + 메시지 노출', () async {
-      final vm = BusMainViewModel(
-        FakeBusArrivalRepository(exception: ApiException(message: '서버 오류')),
-        savedBuses: [makeUser()],
-        index: 0,
-      );
+      final vm = makeViewModel(FakeBusArrivalRepository(exception: ApiException(message: '서버 오류')));
 
       await vm.init();
 
@@ -108,7 +146,7 @@ void main() {
 
     test('에러 후 refresh 성공 시 Success 상태로 복구된다', () async {
       final repo = FakeBusArrivalRepository(exception: ApiException(message: '서버 오류'));
-      final vm = BusMainViewModel(repo, savedBuses: [makeUser()], index: 0);
+      final vm = makeViewModel(repo);
       await vm.init();
       expect(vm.state, isA<BusMainError>());
 
@@ -123,7 +161,7 @@ void main() {
     test('카운트다운은 1초마다 감소하고 60초마다 재조회한다', () {
       fakeAsync((async) {
         final repo = FakeBusArrivalRepository(arrival: makeArrival(sec1: '120', sec2: '300'));
-        final vm = BusMainViewModel(repo, savedBuses: [makeUser()], index: 0);
+        final vm = makeViewModel(repo);
 
         vm.init();
         async.flushMicrotasks();
@@ -144,7 +182,7 @@ void main() {
     test('카운트다운은 0 밑으로 내려가지 않는다', () {
       fakeAsync((async) {
         final repo = FakeBusArrivalRepository(arrival: makeArrival(sec1: '2', sec2: '3'));
-        final vm = BusMainViewModel(repo, savedBuses: [makeUser()], index: 0);
+        final vm = makeViewModel(repo);
 
         vm.init();
         async.flushMicrotasks();
@@ -155,6 +193,107 @@ void main() {
 
         vm.dispose();
       });
+    });
+  });
+
+  group('BusMainViewModel 전체 노선 타임라인', () {
+    test('조회 성공 시 정류장 목록과 탑승 정류장 인덱스를 계산한다', () async {
+      final routeRepo = FakeBusRouteStationRepository(stations: makeRouteStations(5));
+      final vm = makeViewModel(
+        FakeBusArrivalRepository(),
+        routeStationRepository: routeRepo,
+        savedBuses: [makeUser(staOrder: 3)],
+      );
+
+      await vm.loadTimeline();
+
+      final state = vm.timelineState;
+      expect(state, isA<BusTimelineSuccess>());
+      expect((state as BusTimelineSuccess).stations, hasLength(5));
+      // staOrder 3 = stationSeq '3' = 리스트 인덱스 2
+      expect(state.currentIndex, 2);
+    });
+
+    test('탑승 정류장을 찾지 못하면 인덱스가 -1이다', () async {
+      final routeRepo = FakeBusRouteStationRepository(stations: makeRouteStations(3));
+      final vm = makeViewModel(
+        FakeBusArrivalRepository(),
+        routeStationRepository: routeRepo,
+        savedBuses: [makeUser(staOrder: 99)],
+      );
+
+      await vm.loadTimeline();
+
+      expect((vm.timelineState as BusTimelineSuccess).currentIndex, -1);
+    });
+
+    test('한 번 성공하면 다시 조회하지 않는다', () async {
+      final routeRepo = FakeBusRouteStationRepository(stations: makeRouteStations(3));
+      final vm = makeViewModel(FakeBusArrivalRepository(), routeStationRepository: routeRepo);
+
+      await vm.loadTimeline();
+      await vm.loadTimeline();
+      await vm.loadTimeline();
+
+      expect(routeRepo.callCount, 1);
+    });
+
+    test('조회 중 재호출해도 요청은 한 번만 나간다', () async {
+      final routeRepo = FakeBusRouteStationRepository(stations: makeRouteStations(3));
+      final vm = makeViewModel(FakeBusArrivalRepository(), routeStationRepository: routeRepo);
+
+      await Future.wait([vm.loadTimeline(), vm.loadTimeline()]);
+
+      expect(routeRepo.callCount, 1);
+      expect(vm.timelineState, isA<BusTimelineSuccess>());
+    });
+
+    test('ApiException 발생 시 에러 상태 + 메시지 노출', () async {
+      final routeRepo = FakeBusRouteStationRepository(exception: ApiException(message: '노선 서버 오류'));
+      final vm = makeViewModel(FakeBusArrivalRepository(), routeStationRepository: routeRepo);
+
+      await vm.loadTimeline();
+
+      expect(vm.timelineState, isA<BusTimelineError>());
+      expect((vm.timelineState as BusTimelineError).message, '노선 서버 오류');
+    });
+
+    test('정류장이 비어 있으면 에러 상태가 된다', () async {
+      final routeRepo = FakeBusRouteStationRepository(stations: []);
+      final vm = makeViewModel(FakeBusArrivalRepository(), routeStationRepository: routeRepo);
+
+      await vm.loadTimeline();
+
+      expect(vm.timelineState, isA<BusTimelineError>());
+    });
+
+    test('실패 후 다시 펼치면 재조회한다', () async {
+      final routeRepo = FakeBusRouteStationRepository(exception: ApiException(message: '노선 서버 오류'));
+      final vm = makeViewModel(FakeBusArrivalRepository(), routeStationRepository: routeRepo);
+
+      await vm.loadTimeline();
+      expect(vm.timelineState, isA<BusTimelineError>());
+
+      routeRepo.exception = null;
+      routeRepo.stations = makeRouteStations(3);
+      await vm.loadTimeline();
+
+      expect(vm.timelineState, isA<BusTimelineSuccess>());
+      expect(routeRepo.callCount, 2);
+    });
+
+    test('저장된 버스가 없으면 조회하지 않는다', () async {
+      final routeRepo = FakeBusRouteStationRepository(stations: makeRouteStations(3));
+      final vm = makeViewModel(
+        FakeBusArrivalRepository(),
+        routeStationRepository: routeRepo,
+        savedBuses: [],
+      );
+
+      await vm.loadTimeline();
+
+      expect(routeRepo.callCount, 0);
+      expect(vm.timelineState, isA<BusTimelineLoading>());
     });
   });
 }

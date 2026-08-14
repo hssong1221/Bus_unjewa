@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:bus_51/model/bus_arrival_model.dart';
+import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
+import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/utils/api_exception.dart';
 import 'package:flutter/foundation.dart';
 
@@ -39,17 +41,53 @@ class BusMainError extends BusMainState {
 }
 
 // --------------------------------------------------
+// 전체 노선 타임라인(확장 영역) UI 상태
+// --------------------------------------------------
+sealed class BusTimelineState {
+  const BusTimelineState();
+}
+
+/// 경유 정류장 목록 불러오는 중
+class BusTimelineLoading extends BusTimelineState {
+  const BusTimelineLoading();
+}
+
+/// 조회 성공
+class BusTimelineSuccess extends BusTimelineState {
+  const BusTimelineSuccess({
+    required this.stations,
+    required this.currentIndex,
+  });
+
+  /// 노선이 경유하는 전체 정류장 (stationSeq 순)
+  final List<BusRouteStationModel> stations;
+
+  /// 유저가 탑승하는 정류장의 인덱스. 찾지 못하면 -1
+  final int currentIndex;
+}
+
+/// 조회 실패 (네트워크/API 오류, 정류장 정보 없음)
+class BusTimelineError extends BusTimelineState {
+  const BusTimelineError(this.message);
+
+  final String message;
+}
+
+// --------------------------------------------------
 // 메인 화면 ViewModel
-// 도착 정보 조회, 60초 주기 자동 갱신, 도착 카운트다운을 담당한다
+// 도착 정보 조회, 60초 주기 자동 갱신, 도착 카운트다운,
+// 전체 노선 타임라인 조회를 담당한다
 // --------------------------------------------------
 class BusMainViewModel extends ChangeNotifier {
   BusMainViewModel(
-    this._repository, {
+    this._arrivalRepository,
+    this._routeStationRepository, {
     required List<UserSaveModel> savedBuses,
     required int index,
   }) : userModel = (index >= 0 && index < savedBuses.length) ? savedBuses[index] : null;
 
-  final BusArrivalRepository _repository;
+  final BusArrivalRepository _arrivalRepository;
+  final BusRouteStationRepository _routeStationRepository;
 
   /// 화면에 표시할 저장된 버스. null 이면 잘못된 진입(저장 데이터 없음)
   final UserSaveModel? userModel;
@@ -87,7 +125,7 @@ class BusMainViewModel extends ChangeNotifier {
     if (user == null) return;
 
     try {
-      final arrival = await _repository.getArrival(
+      final arrival = await _arrivalRepository.getArrival(
         stationId: user.stationId.toString(),
         routeId: user.routeId.toString(),
         staOrder: user.staOrder.toString(),
@@ -132,6 +170,48 @@ class BusMainViewModel extends ChangeNotifier {
     _countdownTimer?.cancel();
     _remainingSeconds1 = 0;
     _remainingSeconds2 = 0;
+  }
+
+  // ----- 전체 노선 타임라인 -----
+
+  BusTimelineState _timelineState = const BusTimelineLoading();
+  BusTimelineState get timelineState => _timelineState;
+
+  bool _isLoadingTimeline = false;
+
+  /// 전체 노선 보기를 펼칠 때 호출.
+  /// 노선의 정류장 목록은 바뀌지 않으므로 한 번 성공하면 다시 조회하지 않는다
+  Future<void> loadTimeline() async {
+    final user = userModel;
+    if (user == null || _isLoadingTimeline || _timelineState is BusTimelineSuccess) return;
+
+    _isLoadingTimeline = true;
+    _timelineState = const BusTimelineLoading();
+    notifyListeners();
+
+    try {
+      final stations = await _routeStationRepository.getStationsOnRoute(
+        routeId: user.routeId.toString(),
+      );
+
+      if (stations.isEmpty) {
+        _timelineState = const BusTimelineError('노선 정류장 정보가 없습니다');
+      } else {
+        _timelineState = BusTimelineSuccess(
+          stations: stations,
+          // 저장된 staOrder 는 탑승 정류장의 stationSeq 와 같은 값이다
+          currentIndex: stations.indexWhere((s) => s.stationSeq == user.staOrder.toString()),
+        );
+      }
+    } on ApiException catch (e) {
+      _timelineState = BusTimelineError(e.message ?? e.error ?? '노선 정보를 불러오지 못했습니다');
+    } catch (e) {
+      // 공공 API 응답 형태가 일정하지 않아 파싱 오류 가능성이 있음
+      _timelineState = const BusTimelineError('노선 정보를 불러오지 못했습니다');
+    }
+
+    _isLoadingTimeline = false;
+    notifyListeners();
   }
 
   @override

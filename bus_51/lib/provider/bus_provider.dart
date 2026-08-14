@@ -5,16 +5,13 @@ import 'package:bus_51/model/busstation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/utils/api_exception.dart';
-import 'package:bus_51/service/bus_api_service.dart';
 import 'package:flutter/material.dart';
 
 class BusProvider extends ChangeNotifier {
   BusProvider(
-    this._busApiServices,
     this._storageService,
   );
 
-  final BusApiService _busApiServices;
   final StorageService _storageService;
 
   // bus station model
@@ -30,10 +27,8 @@ class BusProvider extends ChangeNotifier {
   BusRouteModel? get selectedRouteModel => _selectedRouteModel;
 
   // route with Station model
-  List<BusRouteStationModel>? _busRouteStationModel;
   BusRouteStationModel? _selectedBusRouteStationModel;
 
-  List<BusRouteStationModel>? get busRouteStationModel => _busRouteStationModel;
   BusRouteStationModel? get selectedBusRouteStationModel => _selectedBusRouteStationModel;
 
   // 정류장 리스트에서 선택
@@ -209,20 +204,8 @@ class BusProvider extends ChangeNotifier {
   // -------
   // API 연결
   // -------
-  // 노선이 지나가는 정류장 데이터 가져오기
-  Future<void> getRouteStationList() async {
-    String? routeId = _selectedRouteModel?.routeId.toString();
-
-    try {
-      _busRouteStationModel = await _busApiServices.getBusRouteStationList(routeId: routeId ?? "208000017");
-    } on ApiException catch (e) {
-      debugPrint(e.toString());
-    } finally {
-      notifyListeners();
-    }
-  }
-
   // 서버 연결 테스트
+  // 자체 서버 복구 시 BusApiService 를 다시 주입해서 아래 호출을 살린다
   Future<void> testConnect({required String item_id, required String q}) async {
     try {
         /*await _busApiServices.testConnect(

@@ -77,7 +77,6 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) =>
               BusProvider(
-                getIt<BusApiService>(),
                 getIt<StorageService>(),
               ),
         ),
