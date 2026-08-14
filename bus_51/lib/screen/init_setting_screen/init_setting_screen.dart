@@ -2,6 +2,7 @@ import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -75,15 +76,30 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
     super.dispose();
   }
 
+  void _goToPrevStep() {
+    _transitionController.reset();
+    context.read<InitProvider>().prevAccountView();
+    _transitionController.forward();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final watchProvider = context.watch<InitProvider>();
 
     return PopScope(
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
+        if (didPop) return;
+        // 하드웨어 뒤로가기는 상단 화살표와 동일하게 이전 단계로 이동
+        if (context.read<InitProvider>().curIdx > 0) {
+          _goToPrevStep();
+        } else if (context.canPop()) {
+          // 노선 추가 플로우(push 진입)면 리스트 화면으로 복귀
           context.pop();
+        } else {
+          // 스플래시에서 go로 진입한 최초 온보딩이면 앱 종료
+          SystemNavigator.pop();
         }
       },
       child: Scaffold(
@@ -103,13 +119,7 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                           SizedBox(
                             width: 48,
                             child: IconButton(
-                              onPressed: watchProvider.curIdx > 0 
-                                  ? () {
-                                      _transitionController.reset();
-                                      watchProvider.prevAccountView();
-                                      _transitionController.forward();
-                                    }
-                                  : null,
+                              onPressed: watchProvider.curIdx > 0 ? _goToPrevStep : null,
                               icon: Icon(
                                 Icons.arrow_back,
                                 color: watchProvider.curIdx > 0 
