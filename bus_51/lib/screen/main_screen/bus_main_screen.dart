@@ -1,7 +1,6 @@
 import 'package:bus_51/model/bus_arrival_model.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
@@ -19,20 +18,22 @@ import 'package:provider/provider.dart';
 // Screen
 // --------------------------------------------------
 class BusMainScreen extends StatelessWidget {
-  const BusMainScreen({super.key});
+  const BusMainScreen({super.key, required this.userDataIdx});
 
   static const String routeName = "main";
   static const String routeURL = "/main";
 
+  /// 저장 노선 리스트에서의 인덱스 (라우터 쿼리 파라미터로 전달)
+  final int userDataIdx;
+
   @override
   Widget build(BuildContext context) {
-    final busProvider = context.read<BusProvider>();
     return ChangeNotifierProvider(
       create: (_) => BusMainViewModel(
         GetIt.I<BusArrivalRepository>(),
         GetIt.I<BusRouteStationRepository>(),
         savedBuses: GetIt.I<StorageService>().loadUserModelList(),
-        index: busProvider.userDataIdx,
+        index: userDataIdx,
       )..init(),
       child: const BusMainView(),
     );

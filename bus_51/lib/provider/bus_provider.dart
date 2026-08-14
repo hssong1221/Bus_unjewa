@@ -38,14 +38,6 @@ class BusProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 유저가 선택한 노선 idx
-  int _userDataIdx = 0;
-  int get userDataIdx => _userDataIdx;
-  set userDataIdx(int value) {
-    _userDataIdx = value;
-    notifyListeners();
-  }
-
   // -------
   // API 연결
   // -------

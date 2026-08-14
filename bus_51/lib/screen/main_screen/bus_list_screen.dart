@@ -1,6 +1,5 @@
 import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/user_save_model.dart';
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
@@ -321,8 +320,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             if (viewModel.isSelectionMode) {
               viewModel.toggleSelection(item);
             } else {
-              context.read<BusProvider>().userDataIdx = viewModel.indexOf(item);
-              context.pushNamed(BusMainScreen.routeName);
+              context.pushNamed(
+                BusMainScreen.routeName,
+                queryParameters: {'idx': viewModel.indexOf(item).toString()},
+              );
             }
           },
           onLongPress: () => _showBusTypeChangeDialog(context, viewModel, item),

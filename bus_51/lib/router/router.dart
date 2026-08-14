@@ -63,7 +63,10 @@ final GoRouter router = GoRouter(
       path: BusMainScreen.routeURL,
       pageBuilder: (context, state) => CustomTransitionPage<void>(
         key: state.pageKey,
-        child: const BusMainScreen(),
+        // idx 미전달/파싱 실패는 -1 → VM이 잘못된 진입으로 처리해 에러 화면을 띄운다
+        child: BusMainScreen(
+          userDataIdx: int.tryParse(state.uri.queryParameters['idx'] ?? '') ?? -1,
+        ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
           SlideTransition(
             position: animation.drive(
