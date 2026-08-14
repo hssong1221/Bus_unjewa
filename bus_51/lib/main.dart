@@ -1,4 +1,3 @@
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/repository/bus_route_repository.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
@@ -15,7 +14,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
-import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 GetIt getIt = GetIt.I;
@@ -71,16 +69,7 @@ void main() async {
       },
   );
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => BusProvider(),
-        ),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {

@@ -1,5 +1,4 @@
 import 'package:bus_51/model/busstation_model.dart';
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/theme/app_background.dart';
@@ -451,7 +450,8 @@ class _StationMapViewState extends State<_StationMapView> {
   }
 
   void _confirmStation(BusStationModel station) {
-    context.read<BusProvider>().setSelectedStationModel(station);
-    context.read<InitProvider>().nextAccountView();
+    context.read<InitProvider>()
+      ..setSelectedStationModel(station)
+      ..nextAccountView();
   }
 }

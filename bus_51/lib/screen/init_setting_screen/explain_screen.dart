@@ -1,4 +1,3 @@
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
@@ -47,8 +46,8 @@ class _ExplainScreenViewState extends State<ExplainScreenView> with TickerProvid
   }
 
   void _initializeApp() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<BusProvider>().testConnect(item_id: "1", q: "hello world");
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 자체 서버 복구 시 여기서 BusApiService.testConnect 로 연결 확인을 되살린다
       _startAnimations();
     });
   }

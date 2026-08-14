@@ -1,5 +1,4 @@
 import 'package:bus_51/model/busroute_model.dart';
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/repository/bus_route_repository.dart';
 import 'package:bus_51/theme/app_background.dart';
@@ -23,7 +22,7 @@ class RouteSettingView extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (_) => RouteSettingViewModel(
         GetIt.I<BusRouteRepository>(),
-        stationId: context.read<BusProvider>().selectedStationModel?.stationId,
+        stationId: context.read<InitProvider>().selectedStationModel?.stationId,
       )..init(),
       child: const _RouteSettingBody(),
     );
@@ -82,7 +81,7 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final vm = context.watch<RouteSettingViewModel>();
-    final stationName = context.watch<BusProvider>().selectedStationModel?.stationName;
+    final stationName = context.watch<InitProvider>().selectedStationModel?.stationName;
 
     return Scaffold(
       body: Container(
@@ -232,7 +231,6 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
 
   Widget _buildRoutesList(List<BusRouteModel> routes) {
     final colorScheme = Theme.of(context).colorScheme;
-    final readBusProvider = context.read<BusProvider>();
     final readInitProvider = context.read<InitProvider>();
 
     return ListView.builder(
@@ -252,13 +250,13 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
               ),
             );
           },
-          child: _buildRouteItem(item, colorScheme, readBusProvider, readInitProvider),
+          child: _buildRouteItem(item, colorScheme, readInitProvider),
         );
       },
     );
   }
 
-  Widget _buildRouteItem(BusRouteModel item, ColorScheme colorScheme, readBusProvider, readInitProvider) {
+  Widget _buildRouteItem(BusRouteModel item, ColorScheme colorScheme, readInitProvider) {
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
       child: Material(
@@ -266,7 +264,7 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> with TickerProvide
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
           onTap: () {
-            readBusProvider.setSelectedRouteModel(item);
+            readInitProvider.setSelectedRouteModel(item);
             readInitProvider.nextAccountView();
           },
           child: Container(

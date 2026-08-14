@@ -1,6 +1,6 @@
 import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
-import 'package:bus_51/provider/bus_provider.dart';
+import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
@@ -27,7 +27,7 @@ class FavoriteSettingView extends StatelessWidget {
       create: (_) => FavoriteSettingViewModel(
         GetIt.I<BusRouteStationRepository>(),
         GetIt.I<StorageService>(),
-        route: context.read<BusProvider>().selectedRouteModel,
+        route: context.read<InitProvider>().selectedRouteModel,
       )..init(),
       child: const _FavoriteSettingBody(),
     );
