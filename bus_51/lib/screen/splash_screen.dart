@@ -1,10 +1,10 @@
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
+import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // Screen
@@ -69,8 +69,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(_splashDelay, () async {
         try {
-          final readBusProvider = context.read<BusProvider>();
-          var model = await readBusProvider.loadUserDataList();
+          var model = GetIt.I<StorageService>().loadUserModelList();
 
           if(model.isEmpty) {
             context.goNamed(InitSettingScreen.routeName);

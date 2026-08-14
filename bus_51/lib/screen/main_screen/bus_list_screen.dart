@@ -1,11 +1,15 @@
 import 'package:bus_51/enums/bus_enums.dart';
+import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
+import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
+import 'package:bus_51/viewmodel/bus_list_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -20,7 +24,10 @@ class BusListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const BusListView();
+    return ChangeNotifierProvider(
+      create: (_) => BusListViewModel(GetIt.I<StorageService>()),
+      child: const BusListView(),
+    );
   }
 }
 
@@ -41,10 +48,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
-  // Selection mode state
-  bool _isSelectionMode = false;
-  final Set<int> _selectedIndices = {};
-
   // Back button handling
   DateTime? _lastPressed;
 
@@ -53,15 +56,6 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     super.initState();
     _setupAnimations();
     _startAnimations();
-    // 시간대에 맞는 초기 모드 설정
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final provider = context.read<BusProvider>();
-      // 테스트 데이터 추가 (필요시 주석 해제)
-      // if (provider.loadUserDataList().isEmpty) {
-      //   await provider.addTestData();
-      // }
-      provider.setInitialBusMode();
-    });
   }
 
   void _setupAnimations() {
@@ -82,27 +76,38 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     super.dispose();
   }
 
+  /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화
+  void _goToAddRoute() {
+    final viewModel = context.read<BusListViewModel>();
+    context
+        .pushNamed(
+          InitSettingScreen.routeName,
+          queryParameters: {'startFromStation': 'true'},
+        )
+        .then((_) {
+      if (mounted) viewModel.reload();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final readProvider = context.read<BusProvider>();
-    final watchProvider = context.watch<BusProvider>();
-    var userSaveModel = watchProvider.getFilteredBusList();
+    final viewModel = context.watch<BusListViewModel>();
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
-        
+
         final now = DateTime.now();
         const maxDuration = Duration(seconds: 2);
-        
-        final isWarning = _lastPressed == null || 
+
+        final isWarning = _lastPressed == null ||
             now.difference(_lastPressed!) > maxDuration;
 
         if (isWarning) {
           _lastPressed = now;
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: const Text('한번 더 누르면 앱이 종료됩니다'),
@@ -129,12 +134,12 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildHeader(colorScheme),
+                  _buildHeader(colorScheme, viewModel),
                   const SizedBox(height: 16),
-                  _buildModeSelector(colorScheme, watchProvider, readProvider),
+                  _buildModeSelector(colorScheme, viewModel),
                   const SizedBox(height: 24),
-                  _buildRoutesList(colorScheme, userSaveModel, readProvider),
-                  if (userSaveModel.isNotEmpty) _buildActionButtons(colorScheme, readProvider),
+                  _buildBody(colorScheme, viewModel),
+                  if (viewModel.hasItems) _buildActionButtons(colorScheme, viewModel),
                 ],
               ),
             ),
@@ -144,15 +149,15 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme) {
+  Widget _buildHeader(ColorScheme colorScheme, BusListViewModel viewModel) {
 
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         // 선택 모드일 때만 선택 정보 표시
-        if (_isSelectionMode)
+        if (viewModel.isSelectionMode)
           Text(
-            '${_selectedIndices.length}개 선택됨',
+            '${viewModel.selectedCount}개 선택됨',
             style: context.textStyle.bodyLarge.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
               fontWeight: FontWeight.w600,
@@ -163,7 +168,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
         Row(
           children: [
             // 선택 모드일 때 취소 버튼만 표시
-            if (_isSelectionMode)
+            if (viewModel.isSelectionMode)
               Container(
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
@@ -171,7 +176,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                   shape: BoxShape.circle,
                 ),
                 child: IconButton(
-                  onPressed: _toggleSelectionMode,
+                  onPressed: viewModel.toggleSelectionMode,
                   icon: Icon(Icons.close, color: colorScheme.onSurface),
                   tooltip: '선택 취소',
                 ),
@@ -183,10 +188,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed: () => context.pushNamed(
-                  InitSettingScreen.routeName,
-                  queryParameters: {'startFromStation': 'true'},
-                ),
+                onPressed: _goToAddRoute,
                 icon: Icon(Icons.add_road, color: colorScheme.onPrimary),
                 tooltip: '새 버스 노선 추가하기',
               ),
@@ -197,7 +199,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildModeSelector(ColorScheme colorScheme, BusProvider watchProvider, BusProvider readProvider) {
+  Widget _buildModeSelector(ColorScheme colorScheme, BusListViewModel viewModel) {
     return Row(
       children: [
         // 전체 모드
@@ -205,9 +207,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           child: _buildModeButton(
             title: '전체',
             mode: BusMode.all,
-            isSelected: watchProvider.currentBusMode == BusMode.all,
+            isSelected: viewModel.mode == BusMode.all,
             colorScheme: colorScheme,
-            onTap: () => readProvider.setBusMode(BusMode.all),
+            onTap: () => viewModel.setMode(BusMode.all),
           ),
         ),
         const SizedBox(width: 8),
@@ -216,9 +218,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           child: _buildModeButton(
             title: '출근',
             mode: BusMode.work,
-            isSelected: watchProvider.currentBusMode == BusMode.work,
+            isSelected: viewModel.mode == BusMode.work,
             colorScheme: colorScheme,
-            onTap: () => readProvider.setBusMode(BusMode.work),
+            onTap: () => viewModel.setMode(BusMode.work),
           ),
         ),
         const SizedBox(width: 8),
@@ -227,9 +229,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
           child: _buildModeButton(
             title: '퇴근',
             mode: BusMode.home,
-            isSelected: watchProvider.currentBusMode == BusMode.home,
+            isSelected: viewModel.mode == BusMode.home,
             colorScheme: colorScheme,
-            onTap: () => readProvider.setBusMode(BusMode.home),
+            onTap: () => viewModel.setMode(BusMode.home),
           ),
         ),
       ],
@@ -278,42 +280,35 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildRoutesList(ColorScheme colorScheme, userSaveModel, readProvider) {
+  Widget _buildBody(ColorScheme colorScheme, BusListViewModel viewModel) {
     return Expanded(
-      child: userSaveModel.isEmpty
-          ? _buildEmptyState(colorScheme)
-          : ListView.builder(
-              physics: const BouncingScrollPhysics(),
-              itemCount: userSaveModel.length,
-              itemBuilder: (context, index) {
-                var item = userSaveModel[index];
-                return TweenAnimationBuilder<double>(
-                  duration: Duration(milliseconds: 300 + (index * 100)),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  builder: (context, value, child) {
-                    return Transform.translate(
-                      offset: Offset(0.0, 20 * (1 - value)),
-                      child: Opacity(opacity: value, child: child),
-                    );
-                  },
-                  child: _buildRouteItem(item, colorScheme, readProvider, index),
-                );
-              },
-            ),
+      child: switch (viewModel.state) {
+        BusListEmpty() => _buildEmptyState(colorScheme),
+        BusListFilterEmpty() => _buildFilterEmptyState(colorScheme, viewModel.mode),
+        BusListSuccess(items: final items) => ListView.builder(
+            physics: const BouncingScrollPhysics(),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              var item = items[index];
+              return TweenAnimationBuilder<double>(
+                duration: Duration(milliseconds: 300 + (index * 100)),
+                tween: Tween(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Transform.translate(
+                    offset: Offset(0.0, 20 * (1 - value)),
+                    child: Opacity(opacity: value, child: child),
+                  );
+                },
+                child: _buildRouteItem(item, colorScheme, viewModel),
+              );
+            },
+          ),
+      },
     );
   }
 
-  Widget _buildRouteItem(item, ColorScheme colorScheme, readProvider, int filteredIndex) {
-    // 전체 리스트에서의 실제 인덱스를 찾기
-    final allUserSaveModel = readProvider.loadUserDataList();
-    final actualIndex = allUserSaveModel.indexWhere((busItem) => 
-      busItem.stationId == item.stationId && 
-      busItem.routeId == item.routeId && 
-      busItem.staOrder == item.staOrder &&
-      busItem.busType == item.busType
-    );
-    
-    final isSelected = _selectedIndices.contains(actualIndex);
+  Widget _buildRouteItem(UserSaveModel item, ColorScheme colorScheme, BusListViewModel viewModel) {
+    final isSelected = viewModel.isSelected(item);
     final busColor = BusColor().setColor(item.routeTypeCd);
 
     return Container(
@@ -323,14 +318,14 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
-            if (_isSelectionMode) {
-              _toggleSelection(actualIndex);
+            if (viewModel.isSelectionMode) {
+              viewModel.toggleSelection(item);
             } else {
-              readProvider.userDataIdx = actualIndex;
+              context.read<BusProvider>().userDataIdx = viewModel.indexOf(item);
               context.pushNamed(BusMainScreen.routeName);
             }
           },
-          onLongPress: () => _showBusTypeChangeDialog(context, readProvider, actualIndex, item),
+          onLongPress: () => _showBusTypeChangeDialog(context, viewModel, item),
           child: Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -351,7 +346,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             child: Row(
               children: [
                 // Checkbox (선택 모드일 때만 표시)
-                if (_isSelectionMode) ...[
+                if (viewModel.isSelectionMode) ...[
                   Container(
                     width: 24,
                     height: 24,
@@ -407,7 +402,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                   ),
                 ),
                 // Arrow (선택 모드가 아닐 때만 표시)
-                if (!_isSelectionMode)
+                if (!viewModel.isSelectionMode)
                   Icon(
                     Icons.arrow_forward_ios,
                     color: colorScheme.onSurface.withValues(alpha: 0.3),
@@ -421,12 +416,12 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildActionButtons(ColorScheme colorScheme, readProvider) {
+  Widget _buildActionButtons(ColorScheme colorScheme, BusListViewModel viewModel) {
     return Column(
       children: [
         const SizedBox(height: 24),
         // 삭제 버튼들
-        if (_isSelectionMode)
+        if (viewModel.isSelectionMode)
           Row(
             children: [
               // 전체 삭제 버튼 (왼쪽, 작게)
@@ -434,7 +429,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 width: 100,
                 height: 42,
                 child: OutlinedButton(
-                  onPressed: () => _showAllDeleteConfirmDialog(context, readProvider),
+                  onPressed: () => _showAllDeleteConfirmDialog(context, viewModel),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(
                       color: colorScheme.error,
@@ -459,19 +454,19 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 child: SizedBox(
                   height: 52,
                   child: FilledButton.icon(
-                    onPressed: _selectedIndices.isNotEmpty ? () => _showSelectedDeleteConfirmDialog(context, readProvider) : null,
+                    onPressed: viewModel.selectedCount > 0 ? () => _showSelectedDeleteConfirmDialog(context, viewModel) : null,
                     icon: const Icon(Icons.delete_outline, size: 20),
                     label: Text(
-                      '선택 삭제 (${_selectedIndices.length})',
+                      '선택 삭제 (${viewModel.selectedCount})',
                       style: context.textStyle.labelLarge.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: _selectedIndices.isNotEmpty ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
+                        color: viewModel.selectedCount > 0 ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
                       ),
                     ),
                     style: FilledButton.styleFrom(
-                      backgroundColor: _selectedIndices.isNotEmpty ? colorScheme.error : colorScheme.surfaceContainerHighest,
-                      foregroundColor: _selectedIndices.isNotEmpty ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
-                      elevation: _selectedIndices.isNotEmpty ? 3 : 0,
+                      backgroundColor: viewModel.selectedCount > 0 ? colorScheme.error : colorScheme.surfaceContainerHighest,
+                      foregroundColor: viewModel.selectedCount > 0 ? colorScheme.onError : colorScheme.onSurface.withValues(alpha: 0.4),
+                      elevation: viewModel.selectedCount > 0 ? 3 : 0,
                       shadowColor: colorScheme.error.withValues(alpha: 0.4),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -487,7 +482,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             width: double.infinity,
             height: 52,
             child: OutlinedButton(
-              onPressed: _toggleSelectionMode,
+              onPressed: viewModel.toggleSelectionMode,
               style: OutlinedButton.styleFrom(
                 side: BorderSide(
                   color: colorScheme.outline.withValues(alpha: 0.3),
@@ -549,10 +544,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             width: 220,
             height: 52,
             child: FilledButton.icon(
-              onPressed: () => context.pushNamed(
-                InitSettingScreen.routeName,
-                queryParameters: {'startFromStation': 'true'},
-              ),
+              onPressed: _goToAddRoute,
               icon: const Icon(Icons.add_road, size: 20),
               label: Text(
                 '첫 번째 노선 추가하기',
@@ -575,27 +567,50 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  void _toggleSelectionMode() {
-    setState(() {
-      _isSelectionMode = !_isSelectionMode;
-      _selectedIndices.clear();
-    });
+  /// 저장 노선은 있지만 현재 모드에 해당하는 노선이 없을 때
+  /// (저장 노선 없음과 구분해서 표시한다)
+  Widget _buildFilterEmptyState(ColorScheme colorScheme, BusMode mode) {
+    final modeLabel = mode == BusMode.work ? '출근' : '퇴근';
+
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.filter_list_off,
+              size: 64,
+              color: colorScheme.onSurface.withValues(alpha: 0.3),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            '$modeLabel 노선이 없습니다',
+            style: context.textStyle.headlineSmall.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '노선을 길게 눌러 $modeLabel용으로 설정할 수 있어요',
+            style: context.textStyle.bodyLarge.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
-  void _toggleSelection(int index) {
-    setState(() {
-      if (_selectedIndices.contains(index)) {
-        _selectedIndices.remove(index);
-      } else {
-        _selectedIndices.add(index);
-      }
-    });
-  }
-
-  void _showSelectedDeleteConfirmDialog(BuildContext context, BusProvider provider) {
+  void _showSelectedDeleteConfirmDialog(BuildContext context, BusListViewModel viewModel) {
     final colorScheme = Theme.of(context).colorScheme;
-    final userSaveModel = provider.loadUserDataList();
-    final selectedRoutes = _selectedIndices.map((index) => userSaveModel[index].routeName).toList();
+    final selectedRoutes = viewModel.selectedRouteNames;
 
     showDialog(
       context: context,
@@ -613,7 +628,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('선택한 ${_selectedIndices.length}개의 노선을 삭제하시겠습니까?'),
+              Text('선택한 ${selectedRoutes.length}개의 노선을 삭제하시겠습니까?'),
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
@@ -654,7 +669,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             ),
             FilledButton(
               onPressed: () {
-                _deleteSelectedRoutes(provider);
+                _deleteSelectedRoutes(viewModel);
                 Navigator.of(context).pop();
               },
               style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
@@ -666,15 +681,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  void _deleteSelectedRoutes(BusProvider provider) async {
+  void _deleteSelectedRoutes(BusListViewModel viewModel) async {
     try {
-      // BusProvider의 deleteSelectedUserData 메서드 호출
-      await provider.deleteSelectedUserData(_selectedIndices.toList());
-      
-      setState(() {
-        _isSelectionMode = false;
-        _selectedIndices.clear();
-      });
+      await viewModel.deleteSelected();
 
       // 성공 메시지 표시
       if (mounted) {
@@ -709,9 +718,8 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     }
   }
 
-  void _showAllDeleteConfirmDialog(BuildContext context, BusProvider provider) {
+  void _showAllDeleteConfirmDialog(BuildContext context, BusListViewModel viewModel) {
     final colorScheme = Theme.of(context).colorScheme;
-    final userSaveModel = provider.loadUserDataList();
 
     showDialog(
       context: context,
@@ -729,7 +737,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('모든 저장된 노선(${userSaveModel.length}개)을 삭제하시겠습니까?'),
+              Text('모든 저장된 노선(${viewModel.totalCount}개)을 삭제하시겠습니까?'),
               const SizedBox(height: 16),
               Text(
                 '이 작업은 실행 취소할 수 없습니다.',
@@ -746,7 +754,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
             ),
             FilledButton(
               onPressed: () {
-                _deleteAllRoutes(provider);
+                _deleteAllRoutes(viewModel);
                 Navigator.of(context).pop();
               },
               style: FilledButton.styleFrom(backgroundColor: colorScheme.error),
@@ -758,14 +766,9 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  void _deleteAllRoutes(BusProvider provider) {
+  void _deleteAllRoutes(BusListViewModel viewModel) {
     try {
-      provider.deleteAllData();
-      
-      setState(() {
-        _isSelectionMode = false;
-        _selectedIndices.clear();
-      });
+      viewModel.deleteAll();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -838,7 +841,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  void _showBusTypeChangeDialog(BuildContext context, BusProvider provider, int index, item) {
+  void _showBusTypeChangeDialog(BuildContext context, BusListViewModel viewModel, UserSaveModel item) {
     final colorScheme = Theme.of(context).colorScheme;
     BusType selectedType = item.busType;
 
@@ -902,7 +905,7 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
                 ),
                 FilledButton(
                   onPressed: () {
-                    _changeBusType(provider, index, selectedType);
+                    _changeBusType(viewModel, item, selectedType);
                     Navigator.of(context).pop();
                   },
                   child: const Text('변경'),
@@ -985,10 +988,10 @@ class _BusListViewState extends State<BusListView> with TickerProviderStateMixin
     );
   }
 
-  void _changeBusType(BusProvider provider, int index, BusType newType) async {
+  void _changeBusType(BusListViewModel viewModel, UserSaveModel item, BusType newType) async {
     try {
-      await provider.updateBusType(index, newType);
-      
+      await viewModel.changeBusType(item, newType);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

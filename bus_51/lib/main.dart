@@ -75,10 +75,7 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) =>
-              BusProvider(
-                getIt<StorageService>(),
-              ),
+          create: (_) => BusProvider(),
         ),
       ],
       child: const MyApp(),

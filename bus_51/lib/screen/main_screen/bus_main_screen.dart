@@ -5,6 +5,7 @@ import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
+import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
@@ -30,7 +31,7 @@ class BusMainScreen extends StatelessWidget {
       create: (_) => BusMainViewModel(
         GetIt.I<BusArrivalRepository>(),
         GetIt.I<BusRouteStationRepository>(),
-        savedBuses: busProvider.loadUserDataList(),
+        savedBuses: GetIt.I<StorageService>().loadUserModelList(),
         index: busProvider.userDataIdx,
       )..init(),
       child: const BusMainView(),
