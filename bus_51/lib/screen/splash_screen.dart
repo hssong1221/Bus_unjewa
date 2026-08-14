@@ -67,7 +67,9 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
 
   void _startSplashSequence() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(_splashDelay, () async {
+      Future.delayed(_splashDelay, () {
+        // 딜레이 동안 화면이 사라졌으면 라우팅하지 않는다
+        if (!mounted) return;
         try {
           var model = GetIt.I<StorageService>().loadUserModelList();
 
