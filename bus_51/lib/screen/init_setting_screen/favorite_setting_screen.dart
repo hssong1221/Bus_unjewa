@@ -1,4 +1,3 @@
-import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/provider/init_provider.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
@@ -108,8 +107,6 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> with TickerP
                       child: Column(
                         children: [
                           _buildRouteInfoCard(colorScheme, vm, busColor),
-                          const SizedBox(height: 24),
-                          _buildBusTypeSelector(colorScheme, vm),
                           const SizedBox(height: 24),
                           _buildSaveButton(vm),
                           const SizedBox(height: 24),
@@ -290,152 +287,6 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> with TickerP
             busColor: busColor,
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildBusTypeSelector(ColorScheme colorScheme, FavoriteSettingViewModel vm) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.1),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                Icons.schedule_rounded,
-                color: colorScheme.onSurface.withValues(alpha: 0.7),
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '이 버스는 언제 이용하시나요?',
-                style: context.textStyle.titleMedium.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              // 평시
-              Expanded(
-                child: _buildTypeButton(
-                  title: '평시',
-                  subtitle: '일반',
-                  icon: Icons.directions_bus_rounded,
-                  type: BusType.none,
-                  vm: vm,
-                  colorScheme: colorScheme,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 출근
-              Expanded(
-                child: _buildTypeButton(
-                  title: '출근',
-                  subtitle: '집 → 회사',
-                  icon: Icons.business_center_rounded,
-                  type: BusType.work,
-                  vm: vm,
-                  colorScheme: colorScheme,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // 퇴근
-              Expanded(
-                child: _buildTypeButton(
-                  title: '퇴근',
-                  subtitle: '회사 → 집',
-                  icon: Icons.home_rounded,
-                  type: BusType.home,
-                  vm: vm,
-                  colorScheme: colorScheme,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTypeButton({
-    required String title,
-    required String subtitle,
-    required IconData icon,
-    required BusType type,
-    required FavoriteSettingViewModel vm,
-    required ColorScheme colorScheme,
-  }) {
-    final isSelected = vm.selectedBusType == type;
-    final selectedColor = colorScheme.onSurface;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () => vm.setBusType(type),
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: isSelected ? selectedColor.withValues(alpha: 0.08) : colorScheme.surfaceContainerHigh,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? selectedColor.withValues(alpha: 0.7) : colorScheme.outline.withValues(alpha: 0.2),
-              width: isSelected ? 2 : 1,
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isSelected ? selectedColor.withValues(alpha: 0.15) : colorScheme.onSurface.withValues(alpha: 0.1),
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  icon,
-                  color: isSelected ? selectedColor : colorScheme.onSurface.withValues(alpha: 0.7),
-                  size: 20,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                title,
-                style: context.textStyle.labelMedium.copyWith(
-                  color: selectedColor,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: context.textStyle.bodySmall.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.6),
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

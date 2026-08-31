@@ -1,4 +1,3 @@
-import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
@@ -42,7 +41,7 @@ class FavoriteSettingError extends FavoriteSettingState {
 
 // --------------------------------------------------
 // 설정 완료 화면 ViewModel
-// 경유 정류장 조회, 버스 타입 선택, 저장을 담당한다
+// 경유 정류장 조회, 저장을 담당한다
 // --------------------------------------------------
 class FavoriteSettingViewModel extends ChangeNotifier {
   FavoriteSettingViewModel(
@@ -60,9 +59,6 @@ class FavoriteSettingViewModel extends ChangeNotifier {
   FavoriteSettingState _state = const FavoriteSettingLoading();
   FavoriteSettingState get state => _state;
 
-  BusType _selectedBusType = BusType.none;
-  BusType get selectedBusType => _selectedBusType;
-
   bool _isSaving = false;
   bool get isSaving => _isSaving;
 
@@ -76,11 +72,6 @@ class FavoriteSettingViewModel extends ChangeNotifier {
     _state = const FavoriteSettingLoading();
     notifyListeners();
     await _fetchStations();
-  }
-
-  void setBusType(BusType type) {
-    _selectedBusType = type;
-    notifyListeners();
   }
 
   Future<void> _fetchStations() async {
@@ -137,7 +128,8 @@ class FavoriteSettingViewModel extends ChangeNotifier {
       routeId: routeId,
       staOrder: staOrder,
       routeTypeCd: routeTypeCd,
-      busType: _selectedBusType,
+      stationName: state.curStation.stationName,
+      routeDestName: r.routeDestName,
     ));
 
     _isSaving = false;

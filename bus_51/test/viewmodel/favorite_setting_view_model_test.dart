@@ -1,4 +1,3 @@
-import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
@@ -132,7 +131,7 @@ void main() {
       expect(vm.state, isA<FavoriteSettingReady>());
     });
 
-    test('save: 선택한 버스 타입으로 올바른 UserSaveModel이 저장된다', () async {
+    test('save: 탑승 정류장명과 종점명을 포함한 UserSaveModel이 저장된다', () async {
       final storage = FakeStorageService();
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: makeStations(10)),
@@ -140,7 +139,6 @@ void main() {
         route: makeRoute(staOrder: '3'),
       );
       await vm.init();
-      vm.setBusType(BusType.work);
 
       final saved = await vm.save();
 
@@ -149,7 +147,9 @@ void main() {
       expect(storage.lastSaved!.routeName, '51');
       expect(storage.lastSaved!.routeId, 208000017);
       expect(storage.lastSaved!.staOrder, 3);
-      expect(storage.lastSaved!.busType, BusType.work);
+      // 리스트 카드에서 방향을 구분하는 데 쓰이는 두 필드
+      expect(storage.lastSaved!.stationName, '정류장3');
+      expect(storage.lastSaved!.routeDestName, '수원역');
     });
 
     test('save: 준비 전(로딩/에러)에는 저장되지 않는다', () async {

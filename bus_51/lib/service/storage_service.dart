@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,11 +30,16 @@ class StorageService {
 
     if (jsonString == null) return [];
 
-    final list = jsonDecode(jsonString);
-    if (list is List) {
-      return list
-          .map((item) => UserSaveModel.fromMap(Map<String, dynamic>.from(item)))
-          .toList();
+    try {
+      final list = jsonDecode(jsonString);
+      if (list is List) {
+        return list
+            .map((item) => UserSaveModel.fromMap(Map<String, dynamic>.from(item)))
+            .toList();
+      }
+    } catch (_) {
+      // 필드 구성이 다른 구버전 저장 데이터(stationName/routeDestName 없음)는
+      // 마이그레이션하지 않고 버린다 (배포 전 결정)
     }
     return [];
   }
@@ -44,12 +48,11 @@ class StorageService {
   Future<void> addUserSaveModel(UserSaveModel newUser) async {
     final list = loadUserModelList();
 
-    // 중복 체크: 정류장, 노선, 순서, 버스타입이 모두 동일한 경우
+    // 중복 체크: 정류장, 노선, 순서가 모두 동일한 경우
     final exists = list.any((user) =>
     user.stationId == newUser.stationId &&
         user.routeId == newUser.routeId &&
-        user.staOrder == newUser.staOrder &&
-        user.busType == newUser.busType
+        user.staOrder == newUser.staOrder
     );
 
     if (!exists) {
@@ -73,17 +76,5 @@ class StorageService {
     }
 
     await _saveUserModelList(list);
-  }
-
-  // 특정 인덱스의 버스 타입 변경
-  Future<void> updateBusType(int index, BusType newBusType) async {
-    final list = loadUserModelList();
-
-    if (index >= 0 && index < list.length) {
-      // 기존 데이터를 복사하고 busType만 변경
-      final updatedUser = list[index].copyWith(busType: newBusType);
-      list[index] = updatedUser;
-      await _saveUserModelList(list);
-    }
   }
 }

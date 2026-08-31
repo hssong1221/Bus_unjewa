@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:bus_51/enums/bus_enums.dart';
 
 part 'user_save_model.freezed.dart';
 part 'user_save_model.g.dart';
@@ -12,7 +11,10 @@ sealed class UserSaveModel with _$UserSaveModel {
     required int routeId,
     required int staOrder,
     required int routeTypeCd,
-    required BusType busType,
+    /// 탑승 정류장 이름 (리스트 카드 표기용)
+    required String stationName,
+    /// 노선 종점 이름 — 같은 노선 양방향을 구분하는 기준 (리스트 카드 "→ ○○ 방면")
+    required String routeDestName,
   }) = _UserSaveModel;
 
   factory UserSaveModel.fromJson(Map<String, dynamic> json) =>

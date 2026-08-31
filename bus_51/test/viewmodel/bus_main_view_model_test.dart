@@ -1,4 +1,3 @@
-import 'package:bus_51/enums/bus_enums.dart';
 import 'package:bus_51/model/bus_arrival_model.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
@@ -50,7 +49,8 @@ UserSaveModel makeUser({int staOrder = 3}) => UserSaveModel(
       routeId: 208000017,
       staOrder: staOrder,
       routeTypeCd: 13,
-      busType: BusType.none,
+      stationName: '정류장$staOrder',
+      routeDestName: '수원역',
     );
 
 BusRouteStationModel makeRouteStation(int seq) => BusRouteStationModel(
