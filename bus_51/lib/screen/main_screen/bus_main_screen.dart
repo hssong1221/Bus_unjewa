@@ -480,25 +480,34 @@ class _BusMainViewState extends State<BusMainView> {
                       ),
                     ),
                     const SizedBox(width: AppSpacing.md),
-                    Text(
-                      _mmss(vm.remainingSeconds2),
-                      style: context.textStyle.titleMedium.copyWith(
-                        color: colorScheme.onSurface.withValues(alpha: 0.8),
-                        fontWeight: FontWeight.w700,
-                        fontFeatures: const [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.md),
-                    Expanded(
-                      child: Text(
-                        '${item.locationNo2}정거장 전 · ${item.stationNm2}',
-                        style: context.textStyle.caption.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.6),
+                    // 차량이 한 대만 운행 중이면 두 번째 버스 필드가 "" 로 온다
+                    if (item.hasBus2) ...[
+                      Text(
+                        _mmss(vm.remainingSeconds2),
+                        style: context.textStyle.titleMedium.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.8),
+                          fontWeight: FontWeight.w700,
+                          fontFeatures: const [FontFeature.tabularFigures()],
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                      const SizedBox(width: AppSpacing.md),
+                      Expanded(
+                        child: Text(
+                          '${item.locationNo2}정거장 전 · ${item.stationNm2}',
+                          style: context.textStyle.caption.copyWith(
+                            color: colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ] else
+                      Text(
+                        '버스 정보 없음',
+                        style: context.textStyle.caption.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.5),
+                        ),
+                      ),
                   ],
                 ),
               ),

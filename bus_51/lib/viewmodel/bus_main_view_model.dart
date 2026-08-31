@@ -137,8 +137,8 @@ class BusMainViewModel extends ChangeNotifier {
       } else {
         _state = BusMainSuccess(arrival);
         _startCountdown(
-          int.tryParse(arrival.predictTimeSec1) ?? 0,
-          int.tryParse(arrival.predictTimeSec2) ?? 0,
+          _toSeconds(sec: arrival.predictTimeSec1, min: arrival.predictTime1),
+          _toSeconds(sec: arrival.predictTimeSec2, min: arrival.predictTime2),
         );
       }
     } on ApiException catch (e) {
@@ -150,6 +150,11 @@ class BusMainViewModel extends ChangeNotifier {
       _stopCountdown();
     }
     notifyListeners();
+  }
+
+  /// 초 단위 필드가 비어 오는 응답도 있어 분 단위로 폴백한다
+  static int _toSeconds({required String sec, required String min}) {
+    return int.tryParse(sec) ?? ((int.tryParse(min) ?? 0) * 60);
   }
 
   void _startCountdown(int seconds1, int seconds2) {

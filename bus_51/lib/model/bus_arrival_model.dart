@@ -30,6 +30,14 @@ class BusArrivalModel {
     required this.stationId,
   });
 
+  /// 첫 번째 버스가 실제로 오고 있는지.
+  /// 공공 API는 운행 차량이 없어도 resultCode 0 + flag "PASS" 로 응답하면서
+  /// 예측 시간·위치 필드만 "" 로 비워 보내므로, 이 값으로 "운행 없음"을 판정한다
+  bool get hasBus1 => predictTime1.isNotEmpty || predictTimeSec1.isNotEmpty;
+
+  /// 두 번째 버스 정보 존재 여부 (차량이 한 대만 운행 중이면 false)
+  bool get hasBus2 => predictTime2.isNotEmpty || predictTimeSec2.isNotEmpty;
+
   @override
   String toString() {
     return 'BusArrivalModel(predictTime1: $predictTime1, predictTime2: $predictTime2, predictTimeSec1: $predictTimeSec1, predictTimeSec2: $predictTimeSec2, locationNo1: $locationNo1, locationNo2: $locationNo2, stationNm1: $stationNm1, stationNm2: $stationNm2, flag: $flag, routeDestName: $routeDestName, routeId: $routeId, stationId: $stationId)';

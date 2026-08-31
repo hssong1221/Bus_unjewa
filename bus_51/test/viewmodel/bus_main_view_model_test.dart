@@ -124,6 +124,18 @@ void main() {
       vm.dispose();
     });
 
+    test('predictTimeSec 가 비어 오면 predictTime(분)으로 카운트다운을 시작한다', () async {
+      // 공공 API 응답에 초 단위 필드가 빠져 오는 경우 — 00:00 으로 보이면 안 된다
+      final repo = FakeBusArrivalRepository(arrival: makeArrival(sec1: '', sec2: ''));
+      final vm = makeViewModel(repo);
+
+      await vm.init();
+
+      expect(vm.remainingSeconds1, 2 * 60);
+      expect(vm.remainingSeconds2, 5 * 60);
+      vm.dispose();
+    });
+
     test('도착 정보가 없으면(null) 미운행 상태가 된다', () async {
       final vm = makeViewModel(FakeBusArrivalRepository(arrival: null));
 
