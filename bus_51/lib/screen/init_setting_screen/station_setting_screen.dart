@@ -83,43 +83,23 @@ class _StationMapViewState extends State<_StationMapView> {
     return Container(
       padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 16.0),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  "정류장 선택",
-                  style: context.textStyle.headlineMedium.copyWith(
-                    color: colorScheme.onSurface,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Card.filled(
-            color: colorScheme.surfaceContainer,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.map_rounded,
-                    size: 32,
-                    color: colorScheme.primary,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '지도를 움직여 정류장을 찾고\n마커를 눌러 선택해 주세요',
-                    style: context.textStyle.subtitleBoldMd.copyWith(
-                      color: colorScheme.onSurface,
-                      height: 1.4,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
-              ),
+          Text(
+            "정류장 선택",
+            style: context.textStyle.headlineMedium.copyWith(
+              color: colorScheme.onSurface,
             ),
+          ),
+          const SizedBox(height: 8),
+          // 안내는 부제 한 줄로 — 지도 면적을 최대한 확보한다
+          Text(
+            '지도를 움직여 정류장을 찾고 마커를 눌러 주세요',
+            style: context.textStyle.bodyLarge.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

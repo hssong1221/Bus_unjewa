@@ -136,13 +136,6 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(4),
                                 color: colorScheme.surfaceContainerHighest,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: colorScheme.shadow.withValues(alpha: 0.1),
-                                    blurRadius: 4,
-                                    offset: const Offset(0, 1),
-                                  ),
-                                ],
                               ),
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(4),

@@ -4,9 +4,11 @@ import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/app_background.dart';
+import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/favorite_setting_view_model.dart';
+import 'package:bus_51/widget/app_card.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -40,47 +42,9 @@ class _FavoriteSettingBody extends StatefulWidget {
   State<_FavoriteSettingBody> createState() => _FavoriteSettingBodyState();
 }
 
-class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> with TickerProviderStateMixin {
-  // Animation constants
-  static const Duration _fadeDuration = Duration(milliseconds: 800);
-  static const Duration _slideDuration = Duration(milliseconds: 600);
-
+class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
   // 타임라인 박스 높이 (4줄 정도 보이고 나머지는 스크롤)
   static const double _timelineHeight = 176;
-
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _setupAnimations();
-  }
-
-  void _setupAnimations() {
-    _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
-    _slideController = AnimationController(duration: _slideDuration, vsync: this);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _slideAnimation = Tween<Offset>(begin: const Offset(0.0, 0.3), end: Offset.zero).animate(
-      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
-    );
-
-    _fadeController.forward();
-    _slideController.forward();
-  }
-
-  @override
-  void dispose() {
-    _fadeController.dispose();
-    _slideController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,31 +56,26 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> with TickerP
       body: Container(
         decoration: appBackgroundDecoration(colorScheme),
         child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: SlideTransition(
-              position: _slideAnimation,
-              child: Column(
-                children: [
-                  // 헤더는 고정
-                  _buildHeader(colorScheme),
-                  // 나머지는 스크롤 가능
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Column(
-                        children: [
-                          _buildRouteInfoCard(colorScheme, vm, busColor),
-                          const SizedBox(height: 24),
-                          _buildSaveButton(vm),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
+          child: Column(
+            children: [
+              // 헤더는 고정
+              _buildHeader(colorScheme),
+              // 나머지는 스크롤 가능
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildRouteInfoCard(colorScheme, vm, busColor),
+                      const SizedBox(height: 24),
+                      _buildSaveButton(vm),
+                      const SizedBox(height: 24),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -136,7 +95,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> with TickerP
           ),
           const SizedBox(height: 6),
           Text(
-            '선택하신 노선 정보를 확인하고 저장해주세요',
+            '선택한 노선을 확인하고 저장해 주세요',
             style: context.textStyle.bodyLarge.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
             ),
@@ -147,29 +106,16 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> with TickerP
   }
 
   Widget _buildRouteInfoCard(ColorScheme colorScheme, FavoriteSettingViewModel vm, Color busColor) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
+    return AppCard(
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         children: [
           // Route Number
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),
             decoration: BoxDecoration(
-              color: busColor.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(16),
+              color: busColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.inner),
               border: Border.all(color: busColor.withValues(alpha: 0.3)),
             ),
             child: Text(
