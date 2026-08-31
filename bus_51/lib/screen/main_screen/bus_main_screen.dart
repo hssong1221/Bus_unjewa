@@ -6,9 +6,12 @@ import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/app_background.dart';
+import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
+import 'package:bus_51/widget/app_card.dart';
+import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
@@ -50,18 +53,7 @@ class BusMainView extends StatefulWidget {
   State<BusMainView> createState() => _BusMainViewState();
 }
 
-class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin {
-  // Animation constants
-  static const Duration _fadeDuration = Duration(milliseconds: 1000);
-  static const Duration _pulseDuration = Duration(milliseconds: 2000);
-
-  late AnimationController _fadeController;
-  late AnimationController _pulseController;
-  late AnimationController _expandController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _pulseAnimation;
-  late Animation<double> _expandAnimation;
-
+class _BusMainViewState extends State<BusMainView> {
   // 확장 상태 관리
   bool _isExpanded = false;
 
@@ -70,43 +62,15 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
   final ScrollController _timelineScrollController = ScrollController();
   bool _timelineScrolledToCurrent = false;
 
-  @override
-  void initState() {
-    super.initState();
-    _setupAnimations();
-    _fadeController.forward();
-    _pulseController.repeat(reverse: true);
-  }
-
-  void _setupAnimations() {
-    _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
-    _pulseController = AnimationController(duration: _pulseDuration, vsync: this);
-    _expandController = AnimationController(duration: const Duration(milliseconds: 500), vsync: this);
-
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
-    );
-
-    _pulseAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
-      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
-    );
-
-    _expandAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _expandController, curve: Curves.easeInOutCubic),
-    );
-  }
-
   void _toggleExpanded() {
     setState(() {
       _isExpanded = !_isExpanded;
     });
 
     if (_isExpanded) {
-      _expandController.forward();
       // 확장할 때 전체 노선 정류장 로드 (최초 1회)
       context.read<BusMainViewModel>().loadTimeline();
     } else {
-      _expandController.reverse();
       // 다시 펼칠 때 탑승 정류장 위치로 스크롤되도록 되돌린다
       _timelineScrolledToCurrent = false;
     }
@@ -114,12 +78,17 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
 
   @override
   void dispose() {
-    _fadeController.dispose();
-    _pulseController.dispose();
-    _expandController.dispose();
     _timelineScrollController.dispose();
     super.dispose();
   }
+
+  /// 남은 초 → MM:SS (60분 이상이면 분이 세 자리로 늘어남)
+  static String _mmss(int seconds) {
+    final s = seconds < 0 ? 0 : seconds;
+    return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
+  }
+
+  void _goBackToList() => context.goNamed(BusListScreen.routeName);
 
   @override
   Widget build(BuildContext context) {
@@ -158,44 +127,30 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
           height: MediaQuery.of(context).size.height,
           decoration: appBackgroundDecoration(colorScheme),
           child: SafeArea(
-            child: FadeTransition(
-              opacity: _fadeAnimation,
-              child: RefreshIndicator(
-                onRefresh: () => vm.refresh(),
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(24.0),
-                    child: Column(
-                      children: [
-                        _buildHeader(colorScheme, item, busColor, userModel),
-                        const SizedBox(height: 32),
-                        // 확장 가능한 버스 정보 섹션
-                        AnimatedBuilder(
-                          animation: _expandAnimation,
-                          builder: (context, child) {
-                            return AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 500),
-                              transitionBuilder: (Widget child, Animation<double> animation) {
-                                return ScaleTransition(
-                                  scale: animation,
-                                  child: FadeTransition(
-                                    opacity: animation,
-                                    child: child,
-                                  ),
-                                );
-                              },
-                              child: _isExpanded
-                                  ? _buildExpandedTimelineView(colorScheme, item, vm, busColor)
-                                  : _buildCompactBusInfoSection(colorScheme, item, vm, busColor),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 24),
-                        _buildRefreshHint(colorScheme),
-                        const SizedBox(height: 100), // 추가 여백으로 스크롤 여유 공간 확보
-                      ],
-                    ),
+            child: RefreshIndicator(
+              onRefresh: () => vm.refresh(),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _buildTopBar(colorScheme, item),
+                      const SizedBox(height: AppSpacing.sm),
+                      _buildRouteTitle(colorScheme, busColor, userModel),
+                      const SizedBox(height: AppSpacing.xl),
+                      // 진입 애니메이션 없음 — 히어로 ↔ 전체 노선 확장 전환만 유지
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: _isExpanded
+                            ? _buildExpandedTimelineView(colorScheme, item, vm, busColor)
+                            : _buildHeroSection(colorScheme, item, vm, busColor),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      _buildRefreshHint(colorScheme),
+                      const SizedBox(height: 100), // 추가 여백으로 스크롤 여유 공간 확보
+                    ],
                   ),
                 ),
               ),
@@ -211,32 +166,13 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
       body: Container(
         decoration: appBackgroundDecoration(colorScheme),
         child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScaleTransition(
-                scale: _pulseAnimation,
-                child: Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: busColor.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.directions_bus,
-                    size: 48,
-                    color: busColor,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                '버스 정보를 불러오는 중...',
-                style: context.textStyle.bodyLarge.copyWith(
-                  color: colorScheme.onSurface.withValues(alpha: 0.7),
-                ),
-              ),
-            ],
+          child: BusPulseLoading(
+            size: 48,
+            color: busColor,
+            text: '버스 정보를 불러오는 중...',
+            textStyle: context.textStyle.bodyLarge.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
           ),
         ),
       ),
@@ -250,38 +186,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
         child: SafeArea(
           child: Column(
             children: [
-              // 헤더
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.goNamed(BusListScreen.routeName),
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            userModel.routeName.toString(),
-                            style: context.textStyle.headlineLarge.copyWith(
-                              color: busColor,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 28,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildSimpleHeader(colorScheme, busColor, userModel.routeName),
               // 메인 컨텐츠
               Expanded(
                 child: Center(
@@ -302,7 +207,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        '현재 정류장으로 오고있는 버스가 없습니다',
+                        '오고 있는 버스가 없어요',
                         style: context.textStyle.headlineSmall.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.8),
                           fontWeight: FontWeight.w600,
@@ -311,7 +216,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        '버스가 아직 차고지에서 출발하지 않았거나\n운행이 종료되었을 수 있습니다',
+                        '아직 차고지에서 출발하지 않았거나\n운행이 종료됐을 수 있어요',
                         style: context.textStyle.bodyLarge.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.6),
                         ),
@@ -359,34 +264,7 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
         child: SafeArea(
           child: Column(
             children: [
-              // 헤더
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  children: [
-                    IconButton(
-                      onPressed: () => context.goNamed(BusListScreen.routeName),
-                      icon: Icon(
-                        Icons.arrow_back_ios,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    if (routeName != null)
-                      Expanded(
-                        child: Text(
-                          routeName,
-                          style: context.textStyle.headlineLarge.copyWith(
-                            color: busColor,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 28,
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
+              _buildSimpleHeader(colorScheme, busColor, routeName),
               // 메인 컨텐츠
               Expanded(
                 child: Center(
@@ -435,13 +313,9 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                            // 버튼은 primary (노선색은 포인트에만)
                             style: FilledButton.styleFrom(
-                              backgroundColor: busColor,
-                              foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
                             ),
                           ),
                         ),
@@ -456,199 +330,227 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme, item, Color busColor, UserSaveModel userModel) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: colorScheme.outline.withValues(alpha: 0.2),
+  // 상단바: 뒤로가기 + 실시간 연결 상태
+  Widget _buildTopBar(ColorScheme colorScheme, BusArrivalModel item) {
+    final isLive = item.flag == "PASS";
+    // 연결 상태 색은 고정 green/red 대신 primary/error
+    final statusColor = isLive ? colorScheme.primary : colorScheme.error;
+
+    return Row(
+      children: [
+        IconButton(
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
+          onPressed: _goBackToList,
+          icon: Icon(Icons.arrow_back_ios_new, size: 20, color: colorScheme.onSurface),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+        const Spacer(),
+        Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          isLive ? '실시간' : '연결 끊김',
+          style: context.textStyle.caption.copyWith(
+            color: statusColor,
+            fontWeight: FontWeight.w700,
           ),
+        ),
+      ],
+    );
+  }
+
+  // 운행 없음 / 에러 화면 공용 상단바: 뒤로가기 + 노선번호 배지
+  Widget _buildSimpleHeader(ColorScheme colorScheme, Color busColor, String? routeName) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.sm, AppSpacing.sm, AppSpacing.xl, AppSpacing.sm),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: _goBackToList,
+            icon: Icon(Icons.arrow_back_ios_new, color: colorScheme.onSurface),
+          ),
+          if (routeName != null) _buildRoutePill(busColor, routeName, large: false),
         ],
       ),
-      child: Column(
-        children: [
-          // Connection Status (더 작게)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+    );
+  }
+
+  // 노선번호 배지 + "정류장 · 종점 방면" 부제
+  Widget _buildRouteTitle(ColorScheme colorScheme, Color busColor, UserSaveModel userModel) {
+    return Column(
+      children: [
+        _buildRoutePill(busColor, userModel.routeName, large: true),
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          '${userModel.stationName} 정류장 · ${userModel.routeDestName} 방면',
+          style: context.textStyle.bodySmall.copyWith(
+            color: colorScheme.onSurface.withValues(alpha: 0.6),
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  // 노선색은 이 배지와 카운트다운, 타임라인의 버스 위치·탑승 정류장에만 쓴다
+  Widget _buildRoutePill(Color busColor, String routeName, {required bool large}) {
+    return Container(
+      padding: large
+          ? const EdgeInsets.symmetric(vertical: 8, horizontal: 18)
+          : const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      decoration: BoxDecoration(
+        color: busColor.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(large ? AppRadius.card : AppRadius.inner),
+        border: Border.all(color: busColor.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        routeName,
+        style: (large ? context.textStyle.headlineMedium : context.textStyle.titleMedium).copyWith(
+          color: busColor,
+          fontWeight: FontWeight.w800,
+          letterSpacing: -0.5,
+        ),
+      ),
+    );
+  }
+
+  // 히어로: 다음 버스 카운트다운이 화면의 주인공, 그다음 버스는 하단 한 줄
+  Widget _buildHeroSection(ColorScheme colorScheme, BusArrivalModel item, BusMainViewModel vm, Color busColor) {
+    return Column(
+      key: const ValueKey('hero'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        AppCard(
+          padding: EdgeInsets.zero,
+          child: Column(
             children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: item.flag == "PASS" ? Colors.green : Colors.red, // 연결됨일 때 고정 연두색
-                  shape: BoxShape.circle,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xxl, AppSpacing.xl, AppSpacing.xl),
+                child: Column(
+                  children: [
+                    Text(
+                      '다음 버스',
+                      style: context.textStyle.caption.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.55),
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _mmss(vm.remainingSeconds1),
+                      style: context.textStyle.headlineLarge.copyWith(
+                        color: busColor,
+                        fontSize: 74,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -3,
+                        height: 1.05,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      '${item.locationNo1}정거장 전 · ${item.stationNm1}',
+                      style: context.textStyle.bodyMedium.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                item.flag == "PASS" ? "실시간 연결됨" : "연결 끊김",
-                style: context.textStyle.caption.copyWith(
-                  color: item.flag == "PASS" ? Colors.green : Colors.red, // 연결됨일 때 고정 연두색
-                  fontSize: 11,
+              Divider(height: 1, color: colorScheme.outlineVariant),
+              Padding(
+                padding: const EdgeInsets.all(AppSpacing.lg),
+                child: Row(
+                  children: [
+                    Text(
+                      '그다음',
+                      style: context.textStyle.caption.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.55),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Text(
+                      _mmss(vm.remainingSeconds2),
+                      style: context.textStyle.titleMedium.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.8),
+                        fontWeight: FontWeight.w700,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        '${item.locationNo2}정거장 전 · ${item.stationNm2}',
+                        style: context.textStyle.caption.copyWith(
+                          color: colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 14),
-          // Route Number (배경과 함께, 조금 더 크게)
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 28),
-            decoration: BoxDecoration(
-              color: busColor.withValues(alpha: 0.15), // 조금 더 진한 배경
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: busColor.withValues(alpha: 0.3),
-                width: 1,
-              ),
-            ),
-            child: Text(
-              userModel.routeName,
-              style: context.textStyle.headlineLarge.copyWith(
-                color: busColor,
-                fontWeight: FontWeight.w800,
-                fontSize: 32,
-                letterSpacing: -0.5,
-              ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        SizedBox(
+          height: 52,
+          child: FilledButton.tonalIcon(
+            onPressed: _toggleExpanded,
+            iconAlignment: IconAlignment.end,
+            icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+            label: const Text('전체 노선 보기'),
+            style: FilledButton.styleFrom(
+              backgroundColor: colorScheme.surfaceContainerHigh,
+              foregroundColor: colorScheme.onSurface.withValues(alpha: 0.8),
             ),
           ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactBusInfoSection(ColorScheme colorScheme, item, BusMainViewModel vm, Color busColor) {
-    return GestureDetector(
-      onTap: _toggleExpanded,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.1),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
-        child: Column(
-          children: [
-            // Second Bus
-            _buildBusInfo(
-              context,
-              "2번째 버스",
-              "${item.stationNm2} - ${item.locationNo2}정거장 전",
-              "${(vm.remainingSeconds2 ~/ 60).toString().padLeft(2, '0')}분 ${(vm.remainingSeconds2 % 60).toString().padLeft(2, '0')}초",
-              colorScheme.onSurface.withValues(alpha: 0.6),
-              Icons.directions_bus_outlined,
-              false,
-            ),
-            const SizedBox(height: 20),
-            // Route Line
-            Container(
-              height: 2,
-              color: colorScheme.outline.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 20),
-            // First Bus (Next)
-            _buildBusInfo(
-              context,
-              "다음 버스",
-              "${item.stationNm1} - ${item.locationNo1}정거장 전",
-              "${(vm.remainingSeconds1 ~/ 60).toString().padLeft(2, '0')}분 ${(vm.remainingSeconds1 % 60).toString().padLeft(2, '0')}초",
-              busColor,
-              // 버스 색상 사용
-              Icons.directions_bus,
-              true,
-            ),
-            const SizedBox(height: 20),
-            // 확장 힌트 (더 크고 명확하게)
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-              decoration: BoxDecoration(
-                color: colorScheme.onSurface.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: colorScheme.outline.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.timeline,
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    '전체 노선 보기',
-                    style: context.textStyle.titleMedium.copyWith(
-                      color: colorScheme.onSurface.withValues(alpha: 0.75),
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: colorScheme.onSurface.withValues(alpha: 0.6),
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+      ],
     );
   }
 
   Widget _buildExpandedTimelineView(ColorScheme colorScheme, BusArrivalModel item, BusMainViewModel vm, Color busColor) {
-    return GestureDetector(
+    return AppCard(
+      key: const ValueKey('timeline'),
       onTap: _toggleExpanded,
-      child: Container(
-        width: double.infinity,
+      child: ConstrainedBox(
         constraints: const BoxConstraints(maxHeight: 500),
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colorScheme.outline.withValues(alpha: 0.2)),
-          boxShadow: [
-            BoxShadow(
-              color: colorScheme.shadow.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
         child: Column(
           children: [
-            // 헤더: 축소 버튼
+            // 헤더: 확장 중에도 카운트다운은 우측에 계속 보인다
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   '전체 노선',
-                  style: context.textStyle.titleLarge.copyWith(
+                  style: context.textStyle.titleMedium.copyWith(
                     color: colorScheme.onSurface,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
+                const Spacer(),
+                Text(
+                  _mmss(vm.remainingSeconds1),
+                  style: context.textStyle.titleMedium.copyWith(
+                    color: busColor,
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
                 Icon(
                   Icons.keyboard_arrow_up,
                   color: colorScheme.onSurface.withValues(alpha: 0.6),
@@ -656,9 +558,9 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            Divider(color: colorScheme.outlineVariant),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.md),
+            Divider(height: 1, color: colorScheme.outlineVariant),
+            const SizedBox(height: AppSpacing.md),
             // 타임라인 리스트
             Expanded(
               child: _buildStationTimeline(colorScheme, vm, busColor, item),
@@ -788,31 +690,11 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
   }
 
   Widget _buildRefreshHint(ColorScheme colorScheme) {
-    return Center(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: colorScheme.onSurface.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.keyboard_arrow_down,
-              size: 16,
-              color: colorScheme.onSurface.withValues(alpha: 0.4),
-            ),
-            const SizedBox(width: 4),
-            Text(
-              '새로고침',
-              style: context.textStyle.caption.copyWith(
-                color: colorScheme.onSurface.withValues(alpha: 0.5),
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
+    return Text(
+      '아래로 당겨서 새로고침 · 60초마다 자동 갱신',
+      textAlign: TextAlign.center,
+      style: context.textStyle.caption.copyWith(
+        color: colorScheme.onSurface.withValues(alpha: 0.45),
       ),
     );
   }
@@ -967,78 +849,6 @@ class _BusMainViewState extends State<BusMainView> with TickerProviderStateMixin
     }
 
     return null;
-  }
-
-  Widget _buildBusInfo(
-    BuildContext context,
-    String title,
-    String location,
-    String time,
-    Color color,
-    IconData icon,
-    bool isNext,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isNext ? color.withValues(alpha: 0.1) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
-        border: isNext ? Border.all(color: color.withValues(alpha: 0.3)) : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: context.textStyle.titleMedium.copyWith(
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  location,
-                  style: context.textStyle.bodyMedium.copyWith(
-                    color: colorScheme.onSurface.withValues(alpha: 0.7),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: isNext ? color : colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    "$time 후 도착",
-                    style: context.textStyle.labelMedium.copyWith(
-                      color: isNext ? colorScheme.onPrimary : colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }
 
