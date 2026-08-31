@@ -1,3 +1,4 @@
+import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/colors.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
@@ -32,7 +33,6 @@ final ColorScheme _lightColorScheme = ColorScheme(
   // Surface colors
   surface: const Color(0xFFFFFFFF),
   onSurface: const Color(0xFF1C1B1F),
-  surfaceVariant: const Color(0xFFF5F5F5),
   onSurfaceVariant: const Color(0xFF424242),
   outline: const Color(0xFF9E9E9E),
   outlineVariant: const Color(0xFFE0E0E0),
@@ -83,17 +83,6 @@ final ThemeData lightTheme = ThemeData(
     centerTitle: true,
     systemOverlayStyle: SystemUiOverlayStyle.light,
   ),
-
-  /*textSelectionTheme: TextSelectionThemeData(
-    cursorColor: _darkCustomColors.primaryMain,
-    selectionColor: _darkCustomColors.primaryMain.withValues(alpha: 0.3),
-    selectionHandleColor: _darkCustomColors.primaryMain,
-  ),
-  dividerColor: _darkCustomColors.dividerBorderContainer,
-  dividerTheme: DividerThemeData(
-    space: 1,
-    color: _darkCustomColors.dividerBorderContainer,
-  ),*/
   textTheme: TextTheme(
     displayLarge: TextStyle(
       color: _lightColorScheme.onSurface,
@@ -244,15 +233,16 @@ final ThemeData lightTheme = ThemeData(
       ),
     ),
   ),
+  // 플랫 카드 규칙: 그림자 없이 연한 테두리로 구분 (widget/app_card.dart 와 동일)
   cardTheme: CardThemeData(
     color: _lightColorScheme.surface,
-    surfaceTintColor: _lightColorScheme.surfaceTint.withValues(alpha: 0.05),
-    elevation: 4,
-    shadowColor: _lightColorScheme.shadow.withValues(alpha: 0.15),
+    surfaceTintColor: Colors.transparent,
+    elevation: 0,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      side: BorderSide(color: _lightColorScheme.outline.withValues(alpha: kCardBorderAlpha)),
     ),
-    margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
   ),
   chipTheme: ChipThemeData(
     backgroundColor: _lightColorScheme.surfaceContainerHigh,
@@ -272,29 +262,6 @@ final ThemeData lightTheme = ThemeData(
     color: _lightColorScheme.outlineVariant,
     space: 1,
     thickness: 1,
-  ),
-  navigationBarTheme: NavigationBarThemeData(
-    backgroundColor: _lightColorScheme.surface,
-    indicatorColor: _lightColorScheme.primaryContainer,
-    elevation: 8,
-    shadowColor: _lightColorScheme.shadow.withValues(alpha: 0.1),
-    labelTextStyle: WidgetStateProperty.resolveWith((states) {
-      return TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.w600,
-        color: states.contains(WidgetState.selected)
-            ? _lightColorScheme.primary // 선택시 초록색
-            : _lightColorScheme.onSurfaceVariant,
-        fontFamily: 'Pretendard',
-      );
-    }),
-    iconTheme: WidgetStateProperty.resolveWith((states) {
-      return IconThemeData(
-        color: states.contains(WidgetState.selected)
-            ? _lightColorScheme.primary // 선택시 초록색
-            : _lightColorScheme.onSurfaceVariant,
-      );
-    }),
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
