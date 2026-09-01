@@ -1,6 +1,7 @@
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
+import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -113,56 +114,47 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
         ),
         child: SafeArea(
           child: Center(
-            child: AnimatedBuilder(
-              animation: Listenable.merge([_fadeAnimation, _scaleAnimation]),
-              builder: (context, child) {
-                return FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: ScaleTransition(
-                    scale: _scaleAnimation,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(32),
-                          decoration: BoxDecoration(
-                            color: colorScheme.surface.withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.1),
-                                blurRadius: 20,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            Icons.directions_bus,
-                            size: 64,
-                            color: colorScheme.primary,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        Text(
-                          'Bus 언제와',
-                          style: context.textStyle.headlineMedium.copyWith(
-                            color: colorScheme.onPrimary,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          '실시간 버스 정보 서비스',
-                          style: context.textStyle.bodyLarge.copyWith(
-                            color: colorScheme.onPrimary.withValues(alpha: 0.8),
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
+            // 스플래시는 앱에서 유일하게 장식 모션(fade + scale)을 허용하는 구간.
+            // FadeTransition/ScaleTransition 이 각자 애니메이션을 구독하므로 AnimatedBuilder 는 불필요
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 플랫 원칙에 맞춰 그림자 없이 반투명 surface 원만 사용
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.directions_bus,
+                        size: 64,
+                        color: colorScheme.primary,
+                      ),
                     ),
-                  ),
-                );
-              },
+                    const SizedBox(height: AppSpacing.xxl),
+                    Text(
+                      'Bus 언제와',
+                      style: context.textStyle.headlineMedium.copyWith(
+                        color: colorScheme.onPrimary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      '실시간 버스 정보 서비스',
+                      style: context.textStyle.bodyLarge.copyWith(
+                        color: colorScheme.onPrimary.withValues(alpha: 0.8),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
