@@ -39,7 +39,7 @@ class BusApiService {
   Future<List<BusStationModel>> getBusStationList({required String x, required String y}) async {
     // 자체 서버 연결 (서버 복구 시 다시 사용)
     // final apiPath = "${AppConstants.apiBaseUrl}/getBusStationAroundListv2";
-    final apiPath = "${AppConstants.apiBaseUrl_Station}/getBusStationAroundListv2";
+    final apiPath = "${AppConstants.apiBaseUrlStation}/getBusStationAroundListv2";
 
     try {
       final response = await _dio.get(
@@ -85,7 +85,7 @@ class BusApiService {
   Future<List<BusRouteModel>> getBusRouteList({required String stationId}) async {
     // 자체 서버 연결 (서버 복구 시 다시 사용)
     // final apiPath = "${AppConstants.apiBaseUrl}/getBusStationViaRouteListv2";
-    final apiPath = "${AppConstants.apiBaseUrl_Station}/getBusStationViaRouteListv2";
+    final apiPath = "${AppConstants.apiBaseUrlStation}/getBusStationViaRouteListv2";
 
     try {
       final response = await _dio.get(
@@ -127,7 +127,7 @@ class BusApiService {
   Future<List<BusRouteStationModel>> getBusRouteStationList({required String routeId}) async {
     // 자체 서버 연결 (서버 복구 시 다시 사용)
     // final apiPath = "${AppConstants.apiBaseUrl}/getBusRouteStationListv2";
-    final apiPath = "${AppConstants.apiBaseUrl_Route}/getBusRouteStationListv2";
+    final apiPath = "${AppConstants.apiBaseUrlRoute}/getBusRouteStationListv2";
 
     try {
       final response = await _dio.get(
@@ -169,7 +169,7 @@ class BusApiService {
   Future<BusArrivalModel?> getBusArrivalTimeList({required String stationId, required String routeId, required String staOrder}) async {
     // 자체 서버 연결 (서버 복구 시 다시 사용)
     // final apiPath = "${AppConstants.apiBaseUrl}/getBusArrivalItemv2";
-    final apiPath = "${AppConstants.apiBaseUrl_Arrival}/getBusArrivalItemv2";
+    final apiPath = "${AppConstants.apiBaseUrlArrival}/getBusArrivalItemv2";
 
     try {
       final response = await _dio.get(
@@ -226,8 +226,8 @@ class BusApiService {
 
 
   // 테스트
-  Future<void> testConnect({required String item_id, required String q}) async {
-    final path = "${AppConstants.apiBaseUrl}/items/$item_id";
+  Future<void> testConnect({required String itemId, required String q}) async {
+    final path = "${AppConstants.apiBaseUrl}/items/$itemId";
     try {
       final response = await _dio.get(
         path,
@@ -239,9 +239,7 @@ class BusApiService {
         },
       );
 
-      if (response.statusCode == 200) {
-        var result = response.data;
-      } else {
+      if (response.statusCode != 200) {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {

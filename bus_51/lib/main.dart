@@ -28,7 +28,7 @@ void setUp(SharedPreferencesWithCache prefs) {
 }
 
 void main() async {
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  WidgetsFlutterBinding.ensureInitialized();
 
   /// 화면 세로 방향 고정
   await SystemChrome.setPreferredOrientations([
@@ -61,11 +61,11 @@ void main() async {
       onAuthFailed: (ex) =>
       switch (ex) {
         NQuotaExceededException(:final message) =>
-            print("사용량 초과 (message: $message)"),
+            debugPrint("사용량 초과 (message: $message)"),
         NUnauthorizedClientException() ||
         NClientUnspecifiedException() ||
         NAnotherAuthFailedException() =>
-            print("인증 실패: $ex"),
+            debugPrint("인증 실패: $ex"),
       },
   );
 
