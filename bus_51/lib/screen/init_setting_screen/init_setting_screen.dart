@@ -17,12 +17,13 @@ class InitSettingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => InitProvider(),
-        ),
-      ],
+    // 리스트의 노선 추가로 진입하면 웰컴을 건너뛰고 ② 정류장 선택부터 시작
+    final startFromStation = GoRouterState.of(context).uri.queryParameters['startFromStation'] == 'true';
+
+    return ChangeNotifierProvider(
+      create: (_) => InitProvider(
+        startIdx: startFromStation ? InitProvider.stationStepIdx : 0,
+      ),
       child: const InitSettingView(),
     );
   }
@@ -56,17 +57,7 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
       parent: _transitionController,
       curve: Curves.easeInOutCubic,
     ));
-    
-    // URL 파라미터 확인하여 StationSettingView부터 시작할지 결정
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final uri = GoRouterState.of(context).uri;
-      final startFromStation = uri.queryParameters['startFromStation'] == 'true';
-      
-      if (startFromStation) {
-        context.read<InitProvider>().setInitialIndex(1); // StationSettingView부터 시작 (index 1)
-      }
-    });
-    
+
     _transitionController.forward();
   }
 
@@ -82,25 +73,31 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
     _transitionController.forward();
   }
 
+  /// 상단 ← 버튼과 하드웨어 뒤로가기가 공유하는 동작
+  void _goBack() {
+    if (!context.read<InitProvider>().isFirstStep) {
+      _goToPrevStep();
+    } else if (context.canPop()) {
+      // 노선 추가 플로우(push 진입)면 웰컴으로 가지 않고 리스트 화면으로 복귀
+      context.pop();
+    } else {
+      // 스플래시에서 go로 진입한 최초 온보딩이면 앱 종료
+      SystemNavigator.pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final watchProvider = context.watch<InitProvider>();
+    // 최초 온보딩의 첫 단계(웰컴)에서만 ← 버튼 비활성. 추가 플로우는 첫 단계에서도 리스트로 나갈 수 있다
+    final canGoBack = !watchProvider.isFirstStep || context.canPop();
 
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
-        // 하드웨어 뒤로가기는 상단 화살표와 동일하게 이전 단계로 이동
-        if (context.read<InitProvider>().curIdx > 0) {
-          _goToPrevStep();
-        } else if (context.canPop()) {
-          // 노선 추가 플로우(push 진입)면 리스트 화면으로 복귀
-          context.pop();
-        } else {
-          // 스플래시에서 go로 진입한 최초 온보딩이면 앱 종료
-          SystemNavigator.pop();
-        }
+        _goBack();
       },
       child: Scaffold(
         backgroundColor: colorScheme.surface,
@@ -119,11 +116,11 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                           SizedBox(
                             width: 48,
                             child: IconButton(
-                              onPressed: watchProvider.curIdx > 0 ? _goToPrevStep : null,
+                              onPressed: canGoBack ? _goBack : null,
                               icon: Icon(
                                 Icons.arrow_back,
-                                color: watchProvider.curIdx > 0 
-                                    ? colorScheme.onSurface 
+                                color: canGoBack
+                                    ? colorScheme.onSurface
                                     : colorScheme.onSurface.withValues(alpha: 0.3),
                               ),
                             ),
@@ -151,7 +148,7 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                                     AnimatedBuilder(
                                       animation: _transitionController,
                                       builder: (context, child) {
-                                        final progress = (watchProvider.curIdx + 1) / 4;
+                                        final progress = watchProvider.stepNumber / watchProvider.totalSteps;
                                         return FractionallySizedBox(
                                           widthFactor: progress,
                                           child: Container(
@@ -170,7 +167,7 @@ class _InitSettingViewState extends State<InitSettingView> with TickerProviderSt
                           SizedBox(
                             width: 48,
                             child: Text(
-                              '${watchProvider.curIdx + 1}/4',
+                              '${watchProvider.stepNumber}/${watchProvider.totalSteps}',
                               style: context.textStyle.labelSmall.copyWith(
                                 color: colorScheme.onSurface.withValues(alpha: 0.6),
                               ),
