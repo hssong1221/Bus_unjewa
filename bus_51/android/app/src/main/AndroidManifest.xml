@@ -1,13 +1,20 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- 광고 없음: 광고 ID 미사용을 명시. 의존 SDK가 병합해 넣어도 최종 매니페스트에서 제거된다
+         (Play 콘솔 "광고 ID" 선언과 일치시키기 위함) -->
+    <uses-permission
+        android:name="com.google.android.gms.permission.AD_ID"
+        tools:node="remove" />
+
     <application
-        android:label="bus_51"
+        android:label="버스 언제와"
         android:name="${applicationName}"
-        android:icon="@mipmap/bus">
+        android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
             android:exported="true"

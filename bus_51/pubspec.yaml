@@ -88,6 +88,18 @@ dev_dependencies:
   # 테스트용 인메모리 shared_preferences 구현
   shared_preferences_platform_interface: ^2.4.0
 
+  # 런처 아이콘 생성 (원본은 tool/icon/generate_icon_test.dart 로 그림)
+  flutter_launcher_icons: ^0.14.4
+
+# 런처 아이콘: 원본 생성 후 `dart run flutter_launcher_icons`
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#B2DFDB"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  min_sdk_android: 21
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 
