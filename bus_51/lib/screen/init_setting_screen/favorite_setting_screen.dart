@@ -266,8 +266,13 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
 
   Future<void> _onSave() async {
     final saved = await context.read<FavoriteSettingViewModel>().save();
-    if (saved && mounted) {
-      // push가 아니라 go로 이동해 온보딩 스택이 남지 않게 한다
+    if (!saved || !mounted) return;
+    if (context.canPop()) {
+      // 노선 추가 플로우(리스트에서 push 진입)는 pop으로 복귀해야 리스트가 reload 된다.
+      // go로 스택을 교체하면 push Future가 완료되지 않아 새 노선이 리스트에 반영되지 않는다
+      context.pop();
+    } else {
+      // 스플래시에서 go로 진입한 최초 온보딩: 온보딩 스택이 남지 않게 go로 이동
       context.goNamed(BusListScreen.routeName);
     }
   }
