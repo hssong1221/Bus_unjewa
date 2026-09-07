@@ -1,40 +1,28 @@
 import 'package:bus_51/model/busstation_model.dart';
 import 'package:bus_51/provider/init_provider.dart';
-import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/viewmodel/station_setting_view_model.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
-import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // View
 // 지도에서 정류장을 직접 찾아 선택하는 화면
 // 초기 카메라는 현재 위치, "이 지역에서 검색" 버튼으로 지도 중심 주변을 재검색
+// ViewModel 은 온보딩 전체와 수명이 같아(InitSettingScreen 에서 제공) 여기서 만들지 않는다.
+// 뒤로 갔다 다시 들어오면 GPS·검색 없이 받아둔 정류장을 마지막 검색 위치에서 다시 보여준다
 // --------------------------------------------------
-class StationSettingView extends StatelessWidget {
+class StationSettingView extends StatefulWidget {
   const StationSettingView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => StationSettingViewModel(GetIt.I<BusStationRepository>())..init(),
-      child: const _StationMapView(),
-    );
-  }
+  State<StationSettingView> createState() => _StationSettingViewState();
 }
 
-class _StationMapView extends StatefulWidget {
-  const _StationMapView();
-
-  @override
-  State<_StationMapView> createState() => _StationMapViewState();
-}
-
-class _StationMapViewState extends State<_StationMapView> {
+class _StationSettingViewState extends State<StationSettingView> {
   NaverMapController? _mapController;
   NOverlayImage? _markerIcon;
   NOverlayImage? _selectedMarkerIcon;
@@ -49,6 +37,16 @@ class _StationMapViewState extends State<_StationMapView> {
   // 지도에 올라가 있는 마커들 (선택 하이라이트 갱신용)
   final Map<String, NMarker> _markersById = {};
   String? _highlightedStationId;
+
+  // 지도를 열 카메라 위치. 다시 들어온 경우 마지막 검색 중심, 처음이면 null → 현위치(initialPosition).
+  // 옵션이 바뀌면 네이버맵이 카메라를 다시 잡으므로 위젯이 살아 있는 동안은 바꾸지 않는다
+  MapPoint? _cameraTarget;
+
+  @override
+  void initState() {
+    super.initState();
+    _cameraTarget = context.read<StationSettingViewModel>().lastSearchCenter;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,6 +118,7 @@ class _StationMapViewState extends State<_StationMapView> {
 
   Widget _buildMapArea(ColorScheme colorScheme, StationSettingViewModel vm, MapPoint initialPosition) {
     final notice = vm.noticeMessage ?? (vm.usedFallbackPosition ? '위치 권한이 없어 기본 위치를 표시합니다' : null);
+    final camera = _cameraTarget ?? initialPosition;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 24.0),
@@ -131,7 +130,7 @@ class _StationMapViewState extends State<_StationMapView> {
               child: NaverMap(
                 options: NaverMapViewOptions(
                   initialCameraPosition: NCameraPosition(
-                    target: NLatLng(initialPosition.lat, initialPosition.lng),
+                    target: NLatLng(camera.lat, camera.lng),
                     // 검색 반경 500m에 맞는 축척
                     zoom: 16,
                   ),
@@ -374,6 +373,9 @@ class _StationMapViewState extends State<_StationMapView> {
       _markersById[station.stationId] = marker;
       await controller.addOverlay(marker);
     }
+
+    // 다시 들어온 경우 이미 골라 뒀던 정류장의 강조를 새 마커에 복원한다
+    _syncSelectionHighlight(vm);
   }
 
   Future<NOverlayImage> _buildMarkerIcon(ColorScheme colorScheme, {required bool selected}) {

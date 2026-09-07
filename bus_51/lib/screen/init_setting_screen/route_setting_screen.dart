@@ -1,6 +1,5 @@
 import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/provider/init_provider.dart';
-import 'package:bus_51/repository/bus_route_repository.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
@@ -9,36 +8,30 @@ import 'package:bus_51/viewmodel/route_setting_view_model.dart';
 import 'package:bus_51/widget/app_card.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
-import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // View
 // 선택한 정류장을 경유하는 버스 노선을 골라 다음 단계로 진행하는 화면
+// ViewModel 은 온보딩 전체와 수명이 같아(InitSettingScreen 에서 제공) 여기서 만들지 않는다
 // --------------------------------------------------
-class RouteSettingView extends StatelessWidget {
+class RouteSettingView extends StatefulWidget {
   const RouteSettingView({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return ChangeNotifierProvider(
-      create: (_) => RouteSettingViewModel(
-        GetIt.I<BusRouteRepository>(),
-        stationId: context.read<InitProvider>().selectedStationModel?.stationId,
-      )..init(),
-      child: const _RouteSettingBody(),
-    );
-  }
+  State<RouteSettingView> createState() => _RouteSettingViewState();
 }
 
-class _RouteSettingBody extends StatefulWidget {
-  const _RouteSettingBody();
-
+class _RouteSettingViewState extends State<RouteSettingView> {
   @override
-  State<_RouteSettingBody> createState() => _RouteSettingBodyState();
-}
+  void initState() {
+    super.initState();
+    // 어느 정류장 기준인지만 알려준다. 뒤로 갔다 와도 같은 정류장이면 받아둔 목록을 그대로 쓴다
+    context.read<RouteSettingViewModel>().load(
+          stationId: context.read<InitProvider>().selectedStationModel?.stationId,
+        );
+  }
 
-class _RouteSettingBodyState extends State<_RouteSettingBody> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;

@@ -12,7 +12,9 @@ typedef PositionResolver = Future<MapPoint> Function();
 
 // --------------------------------------------------
 // 정류장 선택(지도) 화면 ViewModel
-// 현위치 확보, 지도 중심 좌표 기준 주변 정류장 검색, 정류장 선택 상태를 담당
+// 현위치 확보, 지도 중심 좌표 기준 주변 정류장 검색, 정류장 선택 상태를 담당.
+// 온보딩 전체와 수명이 같다 (InitSettingScreen 에서 제공). 화면 위젯은 뒤로 갔다 오면
+// 새로 만들어지지만 이 객체는 남아 있으므로 GPS·정류장 검색을 다시 하지 않는다
 // --------------------------------------------------
 class StationSettingViewModel extends ChangeNotifier {
   StationSettingViewModel(
@@ -47,6 +49,10 @@ class StationSettingViewModel extends ChangeNotifier {
   BusStationModel? _selectedStation;
   BusStationModel? get selectedStation => _selectedStation;
 
+  /// 마지막으로 검색한 중심 좌표. 뒤로 갔다 다시 들어올 때 지도를 이 위치에서 열기 위해 기억한다
+  MapPoint? _lastSearchCenter;
+  MapPoint? get lastSearchCenter => _lastSearchCenter;
+
   /// 최초 진입: 현위치 확보 후 그 주변을 1회 자동 검색
   Future<void> init() async {
     try {
@@ -61,6 +67,7 @@ class StationSettingViewModel extends ChangeNotifier {
 
   /// 지도 중심 좌표 주변 정류장 검색 ("이 지역에서 검색" 버튼)
   Future<void> searchAround(MapPoint center) async {
+    _lastSearchCenter = center;
     _isSearching = true;
     _noticeMessage = null;
     notifyListeners();

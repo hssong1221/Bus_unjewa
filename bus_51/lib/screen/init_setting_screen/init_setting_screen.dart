@@ -1,8 +1,13 @@
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/repository/bus_route_repository.dart';
+import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
+import 'package:bus_51/viewmodel/route_setting_view_model.dart';
+import 'package:bus_51/viewmodel/station_setting_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
@@ -20,10 +25,24 @@ class InitSettingScreen extends StatelessWidget {
     // 리스트의 노선 추가로 진입하면 웰컴을 건너뛰고 ② 정류장 선택부터 시작
     final startFromStation = GoRouterState.of(context).uri.queryParameters['startFromStation'] == 'true';
 
-    return ChangeNotifierProvider(
-      create: (_) => InitProvider(
-        startIdx: startFromStation ? InitProvider.stationStepIdx : 0,
-      ),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) => InitProvider(
+            startIdx: startFromStation ? InitProvider.stationStepIdx : 0,
+          ),
+        ),
+        // 단계별 ViewModel 은 단계 위젯이 아니라 온보딩 전체와 수명을 같이한다.
+        // 단계 위젯은 InitProvider 가 인덱스로 갈아끼우므로 뒤로 갔다 오면 새로 만들어지는데,
+        // 그 안에서 VM 을 만들면 GPS·주변 정류장·노선 목록을 매번 다시 받게 된다.
+        // create 는 처음 읽힐 때 실행되므로(lazy) 웰컴 화면에서 GPS 를 켜지는 않는다
+        ChangeNotifierProvider(
+          create: (_) => StationSettingViewModel(GetIt.I<BusStationRepository>())..init(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RouteSettingViewModel(GetIt.I<BusRouteRepository>()),
+        ),
+      ],
       child: const InitSettingView(),
     );
   }

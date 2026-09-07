@@ -119,5 +119,17 @@ void main() {
       vm.clearSelection();
       expect(vm.selectedStation, isNull);
     });
+
+    test('lastSearchCenter: 마지막으로 검색한 중심을 기억한다 (다시 들어올 때 지도를 여는 위치)', () async {
+      final repo = FakeBusStationRepository(stations: [makeStation()]);
+      final vm = StationSettingViewModel(repo, positionResolver: () async => (lat: 37.5, lng: 127.1));
+      expect(vm.lastSearchCenter, isNull);
+
+      await vm.init();
+      expect(vm.lastSearchCenter, (lat: 37.5, lng: 127.1));
+
+      await vm.searchAround((lat: 37.3, lng: 127.0));
+      expect(vm.lastSearchCenter, (lat: 37.3, lng: 127.0));
+    });
   });
 }

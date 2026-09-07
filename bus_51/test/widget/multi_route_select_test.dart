@@ -10,6 +10,7 @@ import 'package:bus_51/screen/init_setting_screen/route_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/light_theme.dart';
+import 'package:bus_51/viewmodel/route_setting_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -93,9 +94,16 @@ void main() {
 
   tearDown(() async => GetIt.I.reset());
 
+  /// 실제 앱에서는 InitSettingScreen 이 InitProvider 와 단계 VM 을 함께 제공한다
   Widget wrap(InitProvider provider, Widget child) => MaterialApp(
         theme: lightTheme,
-        home: ChangeNotifierProvider.value(value: provider, child: child),
+        home: MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: provider),
+            ChangeNotifierProvider(create: (_) => RouteSettingViewModel(GetIt.I<BusRouteRepository>())),
+          ],
+          child: child,
+        ),
       );
 
   testWidgets('노선 선택: 탭으로 체크 토글, 버튼 문구에 개수 반영, 0개면 비활성', (tester) async {
