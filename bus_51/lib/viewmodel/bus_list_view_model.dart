@@ -102,7 +102,7 @@ class BusListViewModel extends ChangeNotifier {
 
   // ----- 카드별 도착 정보 -----
 
-  /// 리스트는 노선 수만큼 API 를 부르므로 메인(60초)보다 길게 잡는다
+  /// 리스트는 정류장 수만큼 API 를 부르므로 메인(60초)보다 길게 잡는다
   static const Duration refreshInterval = Duration(minutes: 2);
 
   /// 저장소를 다시 읽으면 모델 인스턴스가 바뀌므로 객체가 아니라 값(정류장·노선·순번)으로 찾는다
@@ -140,37 +140,42 @@ class BusListViewModel extends ChangeNotifier {
   /// 당겨서 새로고침. 이전 숫자를 지우지 않고 응답이 오면 바꿔 끼운다
   Future<void> refresh() => _fetchAll();
 
-  /// 실패한 카드만 다시 조회
+  /// 실패한 카드의 정류장을 다시 조회 (같은 정류장의 다른 카드도 함께 갱신된다)
   Future<void> retry(UserSaveModel item) {
     _arrivals[keyOf(item)] = const BusCardLoading();
     notifyListeners();
-    return _fetchOne(item);
+    return _fetchStation(item.stationId);
   }
 
-  Future<void> _fetchAll() => Future.wait(_allItems.map(_fetchOne));
+  /// 저장 노선은 대부분 한 정류장에 몰려 있으므로 노선이 아니라 정류장 단위로 조회한다
+  Future<void> _fetchAll() =>
+      Future.wait(_allItems.map((item) => item.stationId).toSet().map(_fetchStation));
 
-  Future<void> _fetchOne(UserSaveModel item) async {
-    BusCardArrival result;
+  /// 정류장 하나의 도착 정보를 한 번에 받아 그 정류장에 저장된 카드 전부를 채운다
+  Future<void> _fetchStation(int stationId) async {
+    BusCardArrival Function(UserSaveModel) resultOf;
     try {
-      final arrival = await _arrivalRepository.getArrival(
-        stationId: item.stationId.toString(),
-        routeId: item.routeId.toString(),
-        staOrder: item.staOrder.toString(),
-      );
-      result = arrival == null
-          ? const BusCardNotOperating()
-          : BusCardArriving(
-              remainingSeconds: arrivalSeconds(sec: arrival.predictTimeSec1, min: arrival.predictTime1),
-              locationNo: arrival.locationNo1,
-            );
+      final arrivals = await _arrivalRepository.getArrivalsAtStation(stationId: stationId.toString());
+      resultOf = (item) {
+        // 순환 노선은 같은 정류장을 두 번 지나므로 routeId 만으로는 부족하고 staOrder 까지 맞아야 한다
+        final arrival = arrivals
+            .where((a) => a.routeId == item.routeId.toString() && a.staOrder == item.staOrder.toString())
+            .firstOrNull;
+        return arrival == null
+            ? const BusCardNotOperating()
+            : BusCardArriving(
+                remainingSeconds: arrivalSeconds(sec: arrival.predictTimeSec1, min: arrival.predictTime1),
+                locationNo: arrival.locationNo1,
+              );
+      };
     } catch (_) {
-      // ApiException 과 공공 API 응답 파싱 오류 모두 카드 하나의 실패로만 보여준다
-      result = const BusCardError();
+      // ApiException 과 공공 API 응답 파싱 오류 모두 이 정류장 카드들의 실패로만 보여준다
+      resultOf = (_) => const BusCardError();
     }
-    // 응답이 오기 전에 삭제된 카드는 버린다
-    final key = keyOf(item);
-    if (!_isSaved(key)) return;
-    _arrivals[key] = result;
+    // 응답을 기다리는 사이 삭제된 카드는 _allItems 에 없으니 자연히 버려진다
+    for (final item in _allItems.where((item) => item.stationId == stationId)) {
+      _arrivals[keyOf(item)] = resultOf(item);
+    }
     _ensureCountdown();
     notifyListeners();
   }

@@ -16,9 +16,32 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-/// 호출 횟수만 센다. 응답은 항상 10분 뒤 도착
+/// 호출 횟수만 센다 (리스트의 정류장 단위 조회와 상세의 노선 단위 조회 합산). 응답은 항상 10분 뒤 도착
 class CountingBusArrivalRepository implements BusArrivalRepository {
   int callCount = 0;
+
+  /// 저장된 카드(routeId 1 / staOrder 3)에 매칭되는 도착 정보
+  static const _arrival = BusArrivalModel(
+    predictTime1: '10',
+    predictTime2: '',
+    predictTimeSec1: '600',
+    predictTimeSec2: '',
+    locationNo1: '5',
+    locationNo2: '',
+    stationNm1: '앞정류장',
+    stationNm2: '',
+    flag: 'PASS',
+    routeDestName: '수원역',
+    routeId: '1',
+    stationId: '1',
+    staOrder: '3',
+  );
+
+  @override
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) async {
+    callCount++;
+    return const [_arrival];
+  }
 
   @override
   Future<BusArrivalModel?> getArrival({
@@ -27,20 +50,7 @@ class CountingBusArrivalRepository implements BusArrivalRepository {
     required String staOrder,
   }) async {
     callCount++;
-    return const BusArrivalModel(
-      predictTime1: '10',
-      predictTime2: '',
-      predictTimeSec1: '600',
-      predictTimeSec2: '',
-      locationNo1: '5',
-      locationNo2: '',
-      stationNm1: '앞정류장',
-      stationNm2: '',
-      flag: 'PASS',
-      routeDestName: '수원역',
-      routeId: '1',
-      stationId: '1',
-    );
+    return _arrival;
   }
 }
 

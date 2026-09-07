@@ -14,6 +14,7 @@ class BusArrivalModel {
   final String routeDestName;
   final String routeId;
   final String stationId;
+  final String staOrder; // 노선 안에서 이 정류장의 순번 (같은 정류장을 두 번 지나는 노선 구분용)
 
   const BusArrivalModel({
     required this.predictTime1,
@@ -28,6 +29,7 @@ class BusArrivalModel {
     required this.routeDestName,
     required this.routeId,
     required this.stationId,
+    this.staOrder = '',
   });
 
   /// 첫 번째 버스가 실제로 오고 있는지.
@@ -40,7 +42,7 @@ class BusArrivalModel {
 
   @override
   String toString() {
-    return 'BusArrivalModel(predictTime1: $predictTime1, predictTime2: $predictTime2, predictTimeSec1: $predictTimeSec1, predictTimeSec2: $predictTimeSec2, locationNo1: $locationNo1, locationNo2: $locationNo2, stationNm1: $stationNm1, stationNm2: $stationNm2, flag: $flag, routeDestName: $routeDestName, routeId: $routeId, stationId: $stationId)';
+    return 'BusArrivalModel(predictTime1: $predictTime1, predictTime2: $predictTime2, predictTimeSec1: $predictTimeSec1, predictTimeSec2: $predictTimeSec2, locationNo1: $locationNo1, locationNo2: $locationNo2, stationNm1: $stationNm1, stationNm2: $stationNm2, flag: $flag, routeDestName: $routeDestName, routeId: $routeId, stationId: $stationId, staOrder: $staOrder)';
   }
 
   @override
@@ -58,11 +60,12 @@ class BusArrivalModel {
         other.flag == flag &&
         other.routeDestName == routeDestName &&
         other.routeId == routeId &&
-        other.stationId == stationId;
+        other.stationId == stationId &&
+        other.staOrder == staOrder;
   }
 
   @override
   int get hashCode {
-    return Object.hash(predictTime1, predictTime2, predictTimeSec1, predictTimeSec2, locationNo1, locationNo2, stationNm1, stationNm2, flag, routeDestName, routeId, stationId);
+    return Object.hash(predictTime1, predictTime2, predictTimeSec1, predictTimeSec2, locationNo1, locationNo2, stationNm1, stationNm2, flag, routeDestName, routeId, stationId, staOrder);
   }
 }

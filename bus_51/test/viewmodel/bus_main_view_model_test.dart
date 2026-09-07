@@ -31,6 +31,10 @@ class FakeBusArrivalRepository implements BusArrivalRepository {
     if (exception != null) throw exception!;
     return arrival;
   }
+
+  /// 정류장 단위 조회는 리스트 화면용이라 상세 VM 은 부르지 않는다
+  @override
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) => throw UnimplementedError();
 }
 
 class FakeBusRouteStationRepository implements BusRouteStationRepository {

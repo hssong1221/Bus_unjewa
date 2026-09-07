@@ -142,6 +142,28 @@ class _FakeArrivalRepository implements BusArrivalRepository {
     required String staOrder,
   }) async =>
       _arrival;
+
+  /// 리스트 화면용: 그 정류장에 저장된 노선마다 같은 도착 정보를 routeId·staOrder 만 맞춰 돌려준다
+  @override
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) async => [
+        for (final bus in _savedBuses)
+          if (bus.stationId.toString() == stationId)
+            BusArrivalModel(
+              predictTime1: _arrival.predictTime1,
+              predictTime2: _arrival.predictTime2,
+              predictTimeSec1: _arrival.predictTimeSec1,
+              predictTimeSec2: _arrival.predictTimeSec2,
+              locationNo1: _arrival.locationNo1,
+              locationNo2: _arrival.locationNo2,
+              stationNm1: _arrival.stationNm1,
+              stationNm2: _arrival.stationNm2,
+              flag: _arrival.flag,
+              routeDestName: bus.routeDestName,
+              routeId: bus.routeId.toString(),
+              stationId: stationId,
+              staOrder: bus.staOrder.toString(),
+            ),
+      ];
 }
 
 class _FakeRouteStationRepository implements BusRouteStationRepository {

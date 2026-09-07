@@ -13,7 +13,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-/// 도착 정보는 이 테스트의 관심사가 아니라 전부 운행 없음(null)으로 돌려준다
+/// 도착 정보는 이 테스트의 관심사가 아니라 전부 운행 없음으로 돌려준다
 class NullBusArrivalRepository implements BusArrivalRepository {
   @override
   Future<BusArrivalModel?> getArrival({
@@ -21,6 +21,9 @@ class NullBusArrivalRepository implements BusArrivalRepository {
     required String routeId,
     required String staOrder,
   }) async => null;
+
+  @override
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) async => const [];
 }
 
 UserSaveModel makeUser(int stationId, String routeName) => UserSaveModel(

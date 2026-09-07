@@ -39,43 +39,60 @@ class FakeStorageService implements StorageService {
 UserSaveModel makeUser({
   String routeName = '51',
   int stationId = 226000060,
+  int routeId = 208000017,
+  int staOrder = 1,
   String routeDestName = '수원역',
 }) =>
     UserSaveModel(
       routeName: routeName,
       stationId: stationId,
-      routeId: 208000017,
-      staOrder: 1,
+      routeId: routeId,
+      staOrder: staOrder,
       routeTypeCd: 13,
       stationName: '정류장1',
       routeDestName: routeDestName,
     );
 
-/// 정류장 ID 별로 다른 응답을 돌려주는 도착 정보 페이크.
-/// 등록되지 않은 정류장은 운행 없음(null), [failingStationIds] 는 API 오류
+/// 정류장 ID 별로 그 정류장에 오고 있는 버스 목록을 돌려주는 도착 정보 페이크.
+/// 등록되지 않은 정류장은 빈 목록(전부 운행 없음), [failingStationIds] 는 API 오류
 class FakeBusArrivalRepository implements BusArrivalRepository {
-  FakeBusArrivalRepository({Map<int, BusArrivalModel>? arrivals, Set<int>? failingStationIds})
+  FakeBusArrivalRepository({Map<int, List<BusArrivalModel>>? arrivals, Set<int>? failingStationIds})
       : arrivals = {...?arrivals},
         failingStationIds = {...?failingStationIds};
 
-  final Map<int, BusArrivalModel> arrivals;
+  final Map<int, List<BusArrivalModel>> arrivals;
   final Set<int> failingStationIds;
+
+  /// 정류장 단위 조회 횟수
   int callCount = 0;
 
+  @override
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) async {
+    callCount++;
+    final id = int.parse(stationId);
+    if (failingStationIds.contains(id)) throw ApiException(message: '서버 오류');
+    return arrivals[id] ?? const [];
+  }
+
+  /// 노선 단위 조회는 상세 화면용이라 리스트 VM 은 부르지 않는다
   @override
   Future<BusArrivalModel?> getArrival({
     required String stationId,
     required String routeId,
     required String staOrder,
-  }) async {
-    callCount++;
-    final id = int.parse(stationId);
-    if (failingStationIds.contains(id)) throw ApiException(message: '서버 오류');
-    return arrivals[id];
-  }
+  }) =>
+      throw UnimplementedError();
 }
 
-BusArrivalModel makeArrival({String sec = '332', String min = '5', String locationNo = '3'}) => BusArrivalModel(
+/// routeId·staOrder 기본값은 [makeUser] 와 같아서 한 카드에 그대로 매칭된다
+BusArrivalModel makeArrival({
+  String sec = '332',
+  String min = '5',
+  String locationNo = '3',
+  String routeId = '208000017',
+  String staOrder = '1',
+}) =>
+    BusArrivalModel(
       predictTime1: min,
       predictTime2: '',
       predictTimeSec1: sec,
@@ -86,8 +103,9 @@ BusArrivalModel makeArrival({String sec = '332', String min = '5', String locati
       stationNm2: '',
       flag: 'PASS',
       routeDestName: '수원역',
-      routeId: '208000017',
+      routeId: routeId,
       stationId: '226000060',
+      staOrder: staOrder,
     );
 
 /// 도착 조회를 쓰지 않는 테스트는 저장소만 넘긴다
@@ -223,7 +241,7 @@ void main() {
       final b = makeUser(stationId: 2);
       final vm = makeVm(
         FakeStorageService(items: [a, b]),
-        repo: FakeBusArrivalRepository(arrivals: {1: makeArrival(sec: '332', locationNo: '3')}),
+        repo: FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '332', locationNo: '3')]}),
       );
 
       expect(vm.arrivalOf(a), isA<BusCardLoading>());
@@ -243,7 +261,7 @@ void main() {
       final a = makeUser(stationId: 1);
       final vm = makeVm(
         FakeStorageService(items: [a]),
-        repo: FakeBusArrivalRepository(arrivals: {1: makeArrival(sec: '', min: '5')}),
+        repo: FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '', min: '5')]}),
       );
 
       await vm.loadArrivals();
@@ -252,10 +270,10 @@ void main() {
       vm.dispose();
     });
 
-    test('한 카드가 실패해도 다른 카드는 정상이고, retry 는 그 카드만 다시 조회한다', () async {
+    test('한 카드가 실패해도 다른 카드는 정상이고, retry 는 그 카드의 정류장만 다시 조회한다', () async {
       final ok = makeUser(stationId: 1);
       final bad = makeUser(stationId: 2);
-      final repo = FakeBusArrivalRepository(arrivals: {1: makeArrival()}, failingStationIds: {2});
+      final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival()]}, failingStationIds: {2});
       final vm = makeVm(FakeStorageService(items: [ok, bad]), repo: repo);
 
       await vm.loadArrivals();
@@ -265,7 +283,7 @@ void main() {
 
       // 서버가 복구된 뒤 재시도
       repo.failingStationIds.clear();
-      repo.arrivals[2] = makeArrival(sec: '60');
+      repo.arrivals[2] = [makeArrival(sec: '60')];
       await vm.retry(bad);
 
       expect((vm.arrivalOf(bad) as BusCardArriving).remainingSeconds, 60);
@@ -277,7 +295,7 @@ void main() {
       fakeAsync((async) {
         final a = makeUser(stationId: 1);
         final b = makeUser(stationId: 2);
-        final repo = FakeBusArrivalRepository(arrivals: {1: makeArrival(sec: '10'), 2: makeArrival(sec: '400')});
+        final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '10')], 2: [makeArrival(sec: '400')]});
         final vm = makeVm(FakeStorageService(items: [a, b]), repo: repo);
 
         vm.loadArrivals();
@@ -302,7 +320,7 @@ void main() {
     test('pause 하면 갱신·카운트다운이 멈추고 resume 하면 다시 조회한다', () {
       fakeAsync((async) {
         final a = makeUser(stationId: 1);
-        final repo = FakeBusArrivalRepository(arrivals: {1: makeArrival(sec: '300')});
+        final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '300')]});
         final vm = makeVm(FakeStorageService(items: [a]), repo: repo);
 
         vm.loadArrivals();
@@ -327,7 +345,7 @@ void main() {
       final a = makeUser(stationId: 1);
       final b = makeUser(stationId: 2);
       final storage = FakeStorageService(items: [a]);
-      final vm = makeVm(storage, repo: FakeBusArrivalRepository(arrivals: {1: makeArrival(), 2: makeArrival()}));
+      final vm = makeVm(storage, repo: FakeBusArrivalRepository(arrivals: {1: [makeArrival()], 2: [makeArrival()]}));
 
       await vm.loadArrivals();
       storage.items = [b];
@@ -337,6 +355,71 @@ void main() {
 
       await vm.resume();
       expect(vm.arrivalOf(b), isA<BusCardArriving>());
+      vm.dispose();
+    });
+  });
+
+  group('BusListViewModel 정류장 단위 조회', () {
+    test('같은 정류장의 노선들은 API 한 번으로 전부 갱신되고, 응답에 없는 노선은 운행 없음', () async {
+      final a = makeUser(stationId: 1, routeId: 10);
+      final b = makeUser(stationId: 1, routeId: 20);
+      final c = makeUser(stationId: 1, routeId: 30);
+      final repo = FakeBusArrivalRepository(arrivals: {
+        1: [makeArrival(routeId: '10', sec: '100'), makeArrival(routeId: '20', sec: '200')],
+      });
+      final vm = makeVm(FakeStorageService(items: [a, b, c]), repo: repo);
+
+      await vm.loadArrivals();
+
+      expect(repo.callCount, 1);
+      expect((vm.arrivalOf(a) as BusCardArriving).remainingSeconds, 100);
+      expect((vm.arrivalOf(b) as BusCardArriving).remainingSeconds, 200);
+      expect(vm.arrivalOf(c), isA<BusCardNotOperating>());
+      vm.dispose();
+    });
+
+    test('정류장이 다르면 정류장 수만큼만 조회한다', () async {
+      final items = [makeUser(stationId: 1, routeId: 10), makeUser(stationId: 1, routeId: 20), makeUser(stationId: 2)];
+      final repo = FakeBusArrivalRepository();
+      final vm = makeVm(FakeStorageService(items: items), repo: repo);
+
+      await vm.loadArrivals();
+
+      expect(repo.callCount, 2);
+      vm.dispose();
+    });
+
+    test('같은 노선이 정류장을 두 번 지나면(순환) staOrder 로 구분한다', () async {
+      final first = makeUser(stationId: 1, routeId: 10, staOrder: 3);
+      final second = makeUser(stationId: 1, routeId: 10, staOrder: 27);
+      final repo = FakeBusArrivalRepository(arrivals: {
+        1: [
+          makeArrival(routeId: '10', staOrder: '3', sec: '100'),
+          makeArrival(routeId: '10', staOrder: '27', sec: '900'),
+        ],
+      });
+      final vm = makeVm(FakeStorageService(items: [first, second]), repo: repo);
+
+      await vm.loadArrivals();
+
+      expect((vm.arrivalOf(first) as BusCardArriving).remainingSeconds, 100);
+      expect((vm.arrivalOf(second) as BusCardArriving).remainingSeconds, 900);
+      vm.dispose();
+    });
+
+    test('정류장 조회가 실패하면 그 정류장의 카드가 모두 오류이고 다른 정류장은 정상이다', () async {
+      final a = makeUser(stationId: 1, routeId: 10);
+      final b = makeUser(stationId: 1, routeId: 20);
+      final c = makeUser(stationId: 2);
+      final repo = FakeBusArrivalRepository(arrivals: {2: [makeArrival()]}, failingStationIds: {1});
+      final vm = makeVm(FakeStorageService(items: [a, b, c]), repo: repo);
+
+      await vm.loadArrivals();
+
+      expect(vm.arrivalOf(a), isA<BusCardError>());
+      expect(vm.arrivalOf(b), isA<BusCardError>());
+      expect(vm.arrivalOf(c), isA<BusCardArriving>());
+      expect(repo.callCount, 2);
       vm.dispose();
     });
   });

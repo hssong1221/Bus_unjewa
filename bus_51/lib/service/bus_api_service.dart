@@ -223,6 +223,52 @@ class BusApiService {
     }
   }
 
+  // 정류장에 오는 전체 노선의 버스 도착정보 가져오기 (노선별 한 항목, 응답 필드는 getBusArrivalItemv2 와 같다)
+  // 리스트 화면처럼 같은 정류장의 노선이 여럿일 때 노선마다 부르지 않고 이걸 한 번만 부른다
+  Future<List<BusArrivalModel>> getBusArrivalList({required String stationId}) async {
+    final apiPath = "${AppConstants.apiBaseUrlArrival}/getBusArrivalListv2";
+
+    try {
+      final response = await _dio.get(
+        apiPath,
+        options: Options(
+          contentType: Headers.jsonContentType,
+        ),
+        queryParameters: {
+          "stationId": stationId,
+          "serviceKey": serviceKey,
+          "format": format,
+        },
+      );
+
+      if (response.statusCode == 200) {
+        // resultCode 확인 (4는 결과가 존재하지 않음)
+        final resultCode = response.data["response"]["msgHeader"]["resultCode"];
+        if (resultCode.toString() == "4") {
+          debugPrint("정류장 버스 운행 정보가 없습니다: ${response.data["response"]["msgHeader"]["resultMessage"]}");
+          return [];
+        }
+
+        final msgBody = response.data["response"]["msgBody"];
+        if (msgBody == null || msgBody["busArrivalList"] == null) {
+          return [];
+        }
+
+        List<dynamic> resultList = makeListForm(msgBody["busArrivalList"]);
+        var entitiesList = resultList.map((json) => BusArrivalEntity.fromJson(json)).toList();
+        return BusArrivalMapper.fromEntityList(entitiesList);
+      } else {
+        throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
+      } else {
+        throw ApiException(error: e.message);
+      }
+    }
+  }
+
 
 
   // 테스트

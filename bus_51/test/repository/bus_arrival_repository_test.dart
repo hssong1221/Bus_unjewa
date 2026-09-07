@@ -4,9 +4,12 @@ import 'package:bus_51/service/bus_api_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeBusApiService implements BusApiService {
-  FakeBusApiService(this.arrival);
+  FakeBusApiService(this.arrival, {this.stationArrivals = const []});
 
   final BusArrivalModel? arrival;
+
+  /// 정류장 단위 조회 응답
+  final List<BusArrivalModel> stationArrivals;
 
   @override
   Future<BusArrivalModel?> getBusArrivalTimeList({
@@ -15,6 +18,9 @@ class FakeBusApiService implements BusApiService {
     required String staOrder,
   }) async =>
       arrival;
+
+  @override
+  Future<List<BusArrivalModel>> getBusArrivalList({required String stationId}) async => stationArrivals;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
@@ -67,6 +73,20 @@ void main() {
 
     test('첫 번째 버스 정보가 있으면 그대로 돌려준다', () async {
       expect(await fetch(runningArrival), runningArrival);
+    });
+  });
+
+  group('BusArrivalRepository.getArrivalsAtStation', () {
+    test('운행 차량이 없는 빈 항목은 걸러내고 오고 있는 버스가 있는 노선만 돌려준다', () async {
+      final repo = BusArrivalRepository(FakeBusApiService(null, stationArrivals: [emptyArrival, runningArrival]));
+
+      expect(await repo.getArrivalsAtStation(stationId: '1'), [runningArrival]);
+    });
+
+    test('정류장에 아무 정보가 없으면 빈 리스트', () async {
+      final repo = BusArrivalRepository(FakeBusApiService(null));
+
+      expect(await repo.getArrivalsAtStation(stationId: '1'), isEmpty);
     });
   });
 

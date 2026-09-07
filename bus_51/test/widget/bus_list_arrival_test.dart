@@ -14,12 +14,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
 
-/// 정류장 ID 별로 다른 응답. 미등록은 운행 없음(null), [failingStationIds] 는 오류
+/// 정류장 ID 별로 다른 응답 (정류장마다 저장 노선은 하나). 미등록은 운행 없음, [failingStationIds] 는 오류
 class FakeBusArrivalRepository implements BusArrivalRepository {
   FakeBusArrivalRepository({this.arrivals = const {}, this.failingStationIds = const {}});
 
   Map<int, BusArrivalModel> arrivals;
   Set<int> failingStationIds;
+
+  /// 리스트 화면이 쓰는 정류장 단위 조회
+  @override
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) async {
+    final arrival = await getArrival(stationId: stationId, routeId: '', staOrder: '');
+    return arrival == null ? const [] : [arrival];
+  }
 
   @override
   Future<BusArrivalModel?> getArrival({
@@ -56,6 +63,8 @@ BusArrivalModel makeArrival({required String sec, String locationNo = '3'}) => B
       routeDestName: '수원역',
       routeId: '1',
       stationId: '226000060',
+      // makeUser 의 routeId 1 / staOrder 3 카드에 매칭되도록
+      staOrder: '3',
     );
 
 void main() {

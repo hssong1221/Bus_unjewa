@@ -31,4 +31,14 @@ class BusArrivalRepository {
     if (arrival == null || !arrival.hasBus1) return null;
     return arrival;
   }
+
+  /// 정류장에 오고 있는 버스 전부 (노선별 한 항목). 같은 정류장에 저장된 노선이 여럿이면
+  /// 노선마다 [getArrival] 을 부르는 대신 이걸 한 번 불러 전부 갱신한다
+  ///
+  /// - 운행 차량이 없는 노선(필드가 전부 "" 인 항목)은 걸러내므로, 결과에 없는 노선 = 운행 없음
+  /// - [ApiException] throw: 네트워크/API 오류
+  Future<List<BusArrivalModel>> getArrivalsAtStation({required String stationId}) async {
+    final arrivals = await _apiService.getBusArrivalList(stationId: stationId);
+    return arrivals.where((arrival) => arrival.hasBus1).toList();
+  }
 }
