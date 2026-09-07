@@ -17,7 +17,7 @@ import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // View
-// 온보딩 마지막 단계: 선택한 노선/정류장을 확인하고 저장하는 화면
+// 온보딩 마지막 단계: 선택한 노선들을 카드로 넘겨보며 확인하고 한 번에 저장하는 화면
 // --------------------------------------------------
 class FavoriteSettingView extends StatelessWidget {
   const FavoriteSettingView({super.key});
@@ -28,7 +28,7 @@ class FavoriteSettingView extends StatelessWidget {
       create: (_) => FavoriteSettingViewModel(
         GetIt.I<BusRouteStationRepository>(),
         GetIt.I<StorageService>(),
-        route: context.read<InitProvider>().selectedRouteModel,
+        routes: context.read<InitProvider>().selectedRouteModels,
       )..init(),
       child: const _FavoriteSettingBody(),
     );
@@ -46,11 +46,29 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
   // 타임라인 박스 높이 (4줄 정도 보이고 나머지는 스크롤)
   static const double _timelineHeight = 176;
 
+  late final PageController _pageController;
+  int _curPage = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // 노선이 여러 개면 옆 카드가 살짝 보이게, 하나면 기존처럼 꽉 차게
+    final multi = context.read<FavoriteSettingViewModel>().routes.length > 1;
+    _pageController = PageController(viewportFraction: multi ? 0.88 : 1.0);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final vm = context.watch<FavoriteSettingViewModel>();
-    final busColor = vm.route != null ? BusColor().setColor(vm.route!.routeTypeCd) : colorScheme.primary;
+    final routeCount = vm.routes.length;
+    final multi = routeCount > 1;
 
     return Scaffold(
       body: Container(
@@ -59,21 +77,25 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
           child: Column(
             children: [
               // 헤더는 고정
-              _buildHeader(colorScheme),
-              // 나머지는 스크롤 가능
+              _buildHeader(colorScheme, multi),
+              if (multi) _buildPageIndicator(colorScheme, routeCount),
+              // 카드는 가로로 넘기고, 카드 안 내용이 길면 세로 스크롤
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildRouteInfoCard(colorScheme, vm, busColor),
-                      const SizedBox(height: 24),
-                      _buildSaveButton(vm),
-                      const SizedBox(height: 24),
-                    ],
-                  ),
-                ),
+                child: routeCount == 0
+                    ? _buildNoRoutes(colorScheme)
+                    : PageView.builder(
+                        controller: _pageController,
+                        itemCount: routeCount,
+                        onPageChanged: (i) => setState(() => _curPage = i),
+                        itemBuilder: (context, index) => SingleChildScrollView(
+                          padding: EdgeInsets.symmetric(horizontal: multi ? 6 : 24),
+                          child: _buildRouteInfoCard(colorScheme, vm, index),
+                        ),
+                      ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+                child: _buildSaveButton(vm),
               ),
             ],
           ),
@@ -82,7 +104,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
     );
   }
 
-  Widget _buildHeader(ColorScheme colorScheme) {
+  Widget _buildHeader(ColorScheme colorScheme, bool multi) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
       child: Column(
@@ -95,7 +117,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
           ),
           const SizedBox(height: 6),
           Text(
-            '선택한 노선을 확인하고 저장해 주세요',
+            multi ? '선택한 노선을 넘겨보며 확인하고 저장해 주세요' : '선택한 노선을 확인하고 저장해 주세요',
             style: context.textStyle.bodyLarge.copyWith(
               color: colorScheme.onSurface.withValues(alpha: 0.7),
             ),
@@ -105,7 +127,52 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
     );
   }
 
-  Widget _buildRouteInfoCard(ColorScheme colorScheme, FavoriteSettingViewModel vm, Color busColor) {
+  // 점 인디케이터 + "1 / N"
+  Widget _buildPageIndicator(ColorScheme colorScheme, int count) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
+      child: Row(
+        children: [
+          for (var i = 0; i < count; i++)
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              margin: const EdgeInsets.only(right: 6),
+              width: i == _curPage ? 18 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: i == _curPage ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(AppRadius.pill),
+              ),
+            ),
+          const Spacer(),
+          Text(
+            '${_curPage + 1} / $count',
+            style: context.textStyle.labelMedium.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 선택한 노선 없이 들어온 잘못된 진입
+  Widget _buildNoRoutes(ColorScheme colorScheme) {
+    return Center(
+      child: Text(
+        '선택된 노선 정보가 없습니다',
+        style: context.textStyle.bodyLarge.copyWith(
+          color: colorScheme.onSurface.withValues(alpha: 0.7),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRouteInfoCard(ColorScheme colorScheme, FavoriteSettingViewModel vm, int index) {
+    final route = vm.routes[index];
+    final busColor = BusColor().setColor(route.routeTypeCd);
+
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
@@ -119,7 +186,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
               border: Border.all(color: busColor.withValues(alpha: 0.3)),
             ),
             child: Text(
-              vm.route?.routeName ?? "버스 노선",
+              route.routeName,
               style: context.textStyle.headlineMedium.copyWith(
                 color: busColor,
                 fontWeight: FontWeight.w700,
@@ -141,7 +208,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${vm.route?.routeDestName ?? "목적지"} 방면',
+                    '${route.routeDestName} 방면',
                     style: context.textStyle.labelLarge.copyWith(
                       color: busColor,
                       fontWeight: FontWeight.w600,
@@ -152,10 +219,10 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
             ),
           ),
           const SizedBox(height: 16),
-          // Stations Timeline (상태별 분기)
-          switch (vm.state) {
+          // Stations Timeline (카드별 상태 분기)
+          switch (vm.stateAt(index)) {
             FavoriteSettingLoading() => _buildStationsLoading(colorScheme),
-            FavoriteSettingError(:final message) => _buildStationsError(colorScheme, vm, message),
+            FavoriteSettingError(:final message) => _buildStationsError(colorScheme, message, () => vm.retry(index)),
             FavoriteSettingReady(:final timelineStations) => _buildStationsTimeline(colorScheme, timelineStations, busColor),
           },
         ],
@@ -178,7 +245,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
     );
   }
 
-  Widget _buildStationsError(ColorScheme colorScheme, FavoriteSettingViewModel vm, String message) {
+  Widget _buildStationsError(ColorScheme colorScheme, String message, VoidCallback onRetry) {
     return SizedBox(
       height: 140,
       child: Center(
@@ -200,7 +267,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
             ),
             const SizedBox(height: 8),
             TextButton.icon(
-              onPressed: () => vm.retry(),
+              onPressed: onRetry,
               icon: const Icon(Icons.refresh, size: 18),
               label: const Text('다시 시도'),
             ),
@@ -238,6 +305,8 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
   }
 
   Widget _buildSaveButton(FavoriteSettingViewModel vm) {
+    final count = vm.routes.length;
+
     return SizedBox(
       width: double.infinity,
       height: 52,
@@ -254,7 +323,7 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
                 size: 20,
               ),
         label: Text(
-          '저장하고 시작하기',
+          count > 1 ? '$count개 노선 저장하고 시작하기' : '저장하고 시작하기',
           style: context.textStyle.labelLarge.copyWith(
             fontWeight: FontWeight.w600,
             color: Colors.white,

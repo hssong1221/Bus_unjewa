@@ -8,36 +8,42 @@ import 'package:bus_51/viewmodel/favorite_setting_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 class FakeBusRouteStationRepository implements BusRouteStationRepository {
-  FakeBusRouteStationRepository({this.stations = const [], this.exception});
+  FakeBusRouteStationRepository({this.stations = const [], this.exception, this.failingRouteIds = const {}});
 
   List<BusRouteStationModel> stations;
   ApiException? exception;
 
+  /// 이 노선 id 만 실패시킨다 (다중 노선 중 일부 실패 시나리오)
+  Set<String> failingRouteIds;
+
   @override
   Future<List<BusRouteStationModel>> getStationsOnRoute({required String routeId}) async {
-    if (exception != null) throw exception!;
+    if (exception != null || failingRouteIds.contains(routeId)) {
+      throw exception ?? ApiException(message: '서버 오류');
+    }
     return stations;
   }
 }
 
 class FakeStorageService implements StorageService {
-  UserSaveModel? lastSaved;
+  final List<UserSaveModel> saved = [];
 
   @override
   Future<void> addUserSaveModel(UserSaveModel newUser) async {
-    lastSaved = newUser;
+    saved.add(newUser);
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => throw UnimplementedError();
 }
 
-BusRouteModel makeRoute({String staOrder = '3', String routeId = '208000017'}) => BusRouteModel(
+BusRouteModel makeRoute({String staOrder = '3', String routeId = '208000017', String routeName = '51'}) =>
+    BusRouteModel(
       regionName: '수원',
       routeDestId: '0',
       routeDestName: '수원역',
       routeId: routeId,
-      routeName: '51',
+      routeName: routeName,
       routeTypeCd: '13',
       routeTypeName: '일반형시내버스',
       staOrder: staOrder,
@@ -62,16 +68,15 @@ List<BusRouteStationModel> makeStations(int count) => [for (int i = 1; i <= coun
 
 void main() {
   group('FavoriteSettingViewModel', () {
-    test('route가 null이면(잘못된 진입) 에러 상태 + 저장 불가', () async {
+    test('routes 가 비어 있으면(잘못된 진입) 저장 불가', () async {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(),
         FakeStorageService(),
-        route: null,
+        routes: const [],
       );
 
       await vm.init();
 
-      expect(vm.state, isA<FavoriteSettingError>());
       expect(vm.canSave, isFalse);
     });
 
@@ -79,12 +84,12 @@ void main() {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: makeStations(10)),
         FakeStorageService(),
-        route: makeRoute(staOrder: '3'),
+        routes: [makeRoute(staOrder: '3')],
       );
 
       await vm.init();
 
-      final state = vm.state;
+      final state = vm.stateAt(0);
       expect(state, isA<FavoriteSettingReady>());
       state as FavoriteSettingReady;
       expect(state.curStation.stationSeq, '3');
@@ -96,12 +101,12 @@ void main() {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: makeStations(5)),
         FakeStorageService(),
-        route: makeRoute(staOrder: '99'),
+        routes: [makeRoute(staOrder: '99')],
       );
 
       await vm.init();
 
-      expect(vm.state, isA<FavoriteSettingError>());
+      expect(vm.stateAt(0), isA<FavoriteSettingError>());
       expect(vm.canSave, isFalse);
     });
 
@@ -109,26 +114,48 @@ void main() {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: []),
         FakeStorageService(),
-        route: makeRoute(),
+        routes: [makeRoute()],
       );
 
       await vm.init();
 
-      expect(vm.state, isA<FavoriteSettingError>());
+      expect(vm.stateAt(0), isA<FavoriteSettingError>());
     });
 
     test('ApiException 발생 시 에러 상태, retry 성공 시 복구된다', () async {
       final repo = FakeBusRouteStationRepository(exception: ApiException(message: '서버 오류'));
-      final vm = FavoriteSettingViewModel(repo, FakeStorageService(), route: makeRoute());
+      final vm = FavoriteSettingViewModel(repo, FakeStorageService(), routes: [makeRoute()]);
 
       await vm.init();
-      expect(vm.state, isA<FavoriteSettingError>());
+      expect(vm.stateAt(0), isA<FavoriteSettingError>());
 
       repo.exception = null;
       repo.stations = makeStations(5);
-      await vm.retry();
+      await vm.retry(0);
 
-      expect(vm.state, isA<FavoriteSettingReady>());
+      expect(vm.stateAt(0), isA<FavoriteSettingReady>());
+    });
+
+    test('다중 노선: 하나만 실패하면 그 카드만 에러, 저장 불가. 그 카드 retry 후 저장 가능', () async {
+      final repo = FakeBusRouteStationRepository(stations: makeStations(10), failingRouteIds: {'B'});
+      final vm = FavoriteSettingViewModel(
+        repo,
+        FakeStorageService(),
+        routes: [makeRoute(routeId: 'A'), makeRoute(routeId: 'B'), makeRoute(routeId: 'C')],
+      );
+
+      await vm.init();
+
+      expect(vm.stateAt(0), isA<FavoriteSettingReady>());
+      expect(vm.stateAt(1), isA<FavoriteSettingError>());
+      expect(vm.stateAt(2), isA<FavoriteSettingReady>());
+      expect(vm.canSave, isFalse);
+
+      repo.failingRouteIds = {};
+      await vm.retry(1);
+
+      expect(vm.stateAt(1), isA<FavoriteSettingReady>());
+      expect(vm.canSave, isTrue);
     });
 
     test('save: 탑승 정류장명과 종점명을 포함한 UserSaveModel이 저장된다', () async {
@@ -136,20 +163,42 @@ void main() {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: makeStations(10)),
         storage,
-        route: makeRoute(staOrder: '3'),
+        routes: [makeRoute(staOrder: '3')],
       );
       await vm.init();
 
       final saved = await vm.save();
 
       expect(saved, isTrue);
-      expect(storage.lastSaved, isNotNull);
-      expect(storage.lastSaved!.routeName, '51');
-      expect(storage.lastSaved!.routeId, 208000017);
-      expect(storage.lastSaved!.staOrder, 3);
+      expect(storage.saved, hasLength(1));
+      final model = storage.saved.single;
+      expect(model.routeName, '51');
+      expect(model.routeId, 208000017);
+      expect(model.staOrder, 3);
       // 리스트 카드에서 방향을 구분하는 데 쓰이는 두 필드
-      expect(storage.lastSaved!.stationName, '정류장3');
-      expect(storage.lastSaved!.routeDestName, '수원역');
+      expect(model.stationName, '정류장3');
+      expect(model.routeDestName, '수원역');
+    });
+
+    test('save: 다중 노선이면 체크한 순서대로 전부 저장된다', () async {
+      final storage = FakeStorageService();
+      final vm = FavoriteSettingViewModel(
+        FakeBusRouteStationRepository(stations: makeStations(10)),
+        storage,
+        routes: [
+          makeRoute(routeId: '1', routeName: '7770', staOrder: '2'),
+          makeRoute(routeId: '2', routeName: '5000', staOrder: '4'),
+          makeRoute(routeId: '3', routeName: '11-1', staOrder: '6'),
+        ],
+      );
+      await vm.init();
+
+      final saved = await vm.save();
+
+      expect(saved, isTrue);
+      expect(storage.saved.map((m) => m.routeName), ['7770', '5000', '11-1']);
+      expect(storage.saved.map((m) => m.staOrder), [2, 4, 6]);
+      expect(storage.saved.map((m) => m.stationName), ['정류장2', '정류장4', '정류장6']);
     });
 
     test('save: 준비 전(로딩/에러)에는 저장되지 않는다', () async {
@@ -157,17 +206,17 @@ void main() {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(exception: ApiException(message: '서버 오류')),
         storage,
-        route: makeRoute(),
+        routes: [makeRoute()],
       );
       await vm.init();
 
       final saved = await vm.save();
 
       expect(saved, isFalse);
-      expect(storage.lastSaved, isNull);
+      expect(storage.saved, isEmpty);
     });
 
-    test('save: 숫자 파싱이 불가능한 값이면 저장하지 않고 에러 상태가 된다', () async {
+    test('save: 숫자 파싱이 불가능한 값이면 아무것도 저장하지 않고 해당 카드만 에러 상태가 된다', () async {
       final storage = FakeStorageService();
       const badStation = BusRouteStationModel(
         centerYn: 'N',
@@ -186,15 +235,15 @@ void main() {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: [badStation]),
         storage,
-        route: makeRoute(staOrder: '1'),
+        routes: [makeRoute(staOrder: '1')],
       );
       await vm.init();
 
       final saved = await vm.save();
 
       expect(saved, isFalse);
-      expect(storage.lastSaved, isNull);
-      expect(vm.state, isA<FavoriteSettingError>());
+      expect(storage.saved, isEmpty);
+      expect(vm.stateAt(0), isA<FavoriteSettingError>());
     });
   });
 }

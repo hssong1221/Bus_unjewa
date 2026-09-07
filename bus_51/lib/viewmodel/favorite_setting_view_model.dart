@@ -7,7 +7,7 @@ import 'package:bus_51/utils/api_exception.dart';
 import 'package:flutter/foundation.dart';
 
 // --------------------------------------------------
-// 설정 완료(마지막 확인) 화면 UI 상태
+// 설정 완료(마지막 확인) 화면 — 노선 카드 하나의 UI 상태
 // --------------------------------------------------
 sealed class FavoriteSettingState {
   const FavoriteSettingState();
@@ -41,96 +41,103 @@ class FavoriteSettingError extends FavoriteSettingState {
 
 // --------------------------------------------------
 // 설정 완료 화면 ViewModel
-// 경유 정류장 조회, 저장을 담당한다
+// 선택한 노선마다 경유 정류장을 조회하고, 전부 준비되면 한 번에 저장한다
 // --------------------------------------------------
 class FavoriteSettingViewModel extends ChangeNotifier {
   FavoriteSettingViewModel(
     this._repository,
     this._storageService, {
-    required this.route,
-  });
+    required this.routes,
+  }) : _states = List.filled(routes.length, const FavoriteSettingLoading());
 
   final BusRouteStationRepository _repository;
   final StorageService _storageService;
 
-  /// 이전 단계에서 선택한 노선. null이면 잘못된 진입
-  final BusRouteModel? route;
+  /// 이전 단계에서 체크한 노선들. 비어 있으면 잘못된 진입
+  final List<BusRouteModel> routes;
 
-  FavoriteSettingState _state = const FavoriteSettingLoading();
-  FavoriteSettingState get state => _state;
+  /// routes 와 인덱스가 같은 카드별 상태
+  final List<FavoriteSettingState> _states;
+  FavoriteSettingState stateAt(int index) => _states[index];
 
   bool _isSaving = false;
   bool get isSaving => _isSaving;
 
-  /// 정류장 정보가 준비됐고 저장 중이 아닐 때만 저장 가능
-  bool get canSave => _state is FavoriteSettingReady && !_isSaving;
+  /// 모든 노선의 정류장 정보가 준비됐고 저장 중이 아닐 때만 저장 가능
+  bool get canSave =>
+      routes.isNotEmpty && _states.every((s) => s is FavoriteSettingReady) && !_isSaving;
 
-  Future<void> init() => _fetchStations();
+  /// 노선 수만큼 병렬 조회
+  Future<void> init() => Future.wait([for (var i = 0; i < routes.length; i++) _fetchStations(i)]);
 
-  /// 실패 후 다시 시도
-  Future<void> retry() async {
-    _state = const FavoriteSettingLoading();
+  /// 실패한 카드만 다시 시도
+  Future<void> retry(int index) async {
+    _states[index] = const FavoriteSettingLoading();
     notifyListeners();
-    await _fetchStations();
+    await _fetchStations(index);
   }
 
-  Future<void> _fetchStations() async {
-    final r = route;
-    if (r == null) {
-      _state = const FavoriteSettingError('선택된 노선 정보가 없습니다');
-      notifyListeners();
-      return;
-    }
-
+  Future<void> _fetchStations(int index) async {
+    final r = routes[index];
     try {
       final stations = await _repository.getStationsOnRoute(routeId: r.routeId);
       final staOrder = int.tryParse(r.staOrder);
 
       if (stations.isEmpty || staOrder == null || staOrder < 1 || staOrder > stations.length) {
-        _state = const FavoriteSettingError('정류장 정보를 불러오지 못했습니다');
+        _states[index] = const FavoriteSettingError('정류장 정보를 불러오지 못했습니다');
       } else {
-        _state = FavoriteSettingReady(
+        _states[index] = FavoriteSettingReady(
           curStation: stations[staOrder - 1],
           timelineStations: stations.sublist(staOrder - 1),
         );
       }
     } on ApiException catch (e) {
-      _state = FavoriteSettingError(e.message ?? e.error ?? '정류장 정보를 불러오지 못했습니다');
+      _states[index] = FavoriteSettingError(e.message ?? e.error ?? '정류장 정보를 불러오지 못했습니다');
     } catch (e) {
       // 공공 API 응답 형태가 일정하지 않아 파싱 오류 가능성이 있음
-      _state = const FavoriteSettingError('정류장 정보를 불러오지 못했습니다');
+      _states[index] = const FavoriteSettingError('정류장 정보를 불러오지 못했습니다');
     }
     notifyListeners();
   }
 
   /// 저장. 성공하면 true 반환 (뷰가 리스트 화면으로 이동)
   Future<bool> save() async {
-    final state = _state;
-    final r = route;
-    if (state is! FavoriteSettingReady || r == null || _isSaving) return false;
+    if (!canSave) return false;
 
-    final stationId = int.tryParse(state.curStation.stationId);
-    final routeId = int.tryParse(r.routeId);
-    final staOrder = int.tryParse(state.curStation.stationSeq);
-    final routeTypeCd = int.tryParse(r.routeTypeCd);
-    if (stationId == null || routeId == null || staOrder == null || routeTypeCd == null) {
-      _state = const FavoriteSettingError('저장할 노선 정보가 올바르지 않습니다');
-      notifyListeners();
-      return false;
+    // 하나라도 값이 잘못됐으면 아무것도 저장하지 않고 해당 카드만 에러로 표시
+    final models = <UserSaveModel>[];
+    for (var i = 0; i < routes.length; i++) {
+      final r = routes[i];
+      final state = _states[i] as FavoriteSettingReady;
+
+      final stationId = int.tryParse(state.curStation.stationId);
+      final routeId = int.tryParse(r.routeId);
+      final staOrder = int.tryParse(state.curStation.stationSeq);
+      final routeTypeCd = int.tryParse(r.routeTypeCd);
+      if (stationId == null || routeId == null || staOrder == null || routeTypeCd == null) {
+        _states[i] = const FavoriteSettingError('저장할 노선 정보가 올바르지 않습니다');
+        notifyListeners();
+        return false;
+      }
+
+      models.add(UserSaveModel(
+        routeName: r.routeName,
+        stationId: stationId,
+        routeId: routeId,
+        staOrder: staOrder,
+        routeTypeCd: routeTypeCd,
+        stationName: state.curStation.stationName,
+        routeDestName: r.routeDestName,
+      ));
     }
 
     _isSaving = true;
     notifyListeners();
 
-    await _storageService.addUserSaveModel(UserSaveModel(
-      routeName: r.routeName,
-      stationId: stationId,
-      routeId: routeId,
-      staOrder: staOrder,
-      routeTypeCd: routeTypeCd,
-      stationName: state.curStation.stationName,
-      routeDestName: r.routeDestName,
-    ));
+    // 저장은 읽고-쓰기라 순서대로 (중복은 StorageService 가 거른다)
+    for (final model in models) {
+      await _storageService.addUserSaveModel(model);
+    }
 
     _isSaving = false;
     notifyListeners();

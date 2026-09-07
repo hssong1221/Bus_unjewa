@@ -44,16 +44,26 @@ class InitProvider with ChangeNotifier {
   BusStationModel? _selectedStationModel;
   BusStationModel? get selectedStationModel => _selectedStationModel;
 
-  BusRouteModel? _selectedRouteModel;
-  BusRouteModel? get selectedRouteModel => _selectedRouteModel;
+  /// 노선 선택 화면에서 체크한 노선들 (체크한 순서). 확인 화면에서 한 번에 저장한다
+  final List<BusRouteModel> _selectedRouteModels = [];
+  List<BusRouteModel> get selectedRouteModels => List.unmodifiable(_selectedRouteModels);
 
   void setSelectedStationModel(BusStationModel model) {
+    // 정류장이 바뀌면 이전 정류장 기준으로 체크한 노선은 의미가 없으므로 비운다
+    if (_selectedStationModel?.stationId != model.stationId) {
+      _selectedRouteModels.clear();
+    }
     _selectedStationModel = model;
     notifyListeners();
   }
 
-  void setSelectedRouteModel(BusRouteModel model) {
-    _selectedRouteModel = model;
+  bool isRouteSelected(BusRouteModel model) => _selectedRouteModels.contains(model);
+
+  /// 체크 토글. 뒤로 갔다 와도 유지되도록 화면이 아닌 여기서 들고 있는다
+  void toggleSelectedRoute(BusRouteModel model) {
+    if (!_selectedRouteModels.remove(model)) {
+      _selectedRouteModels.add(model);
+    }
     notifyListeners();
   }
 

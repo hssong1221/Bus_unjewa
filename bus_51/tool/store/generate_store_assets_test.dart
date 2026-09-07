@@ -201,7 +201,7 @@ GoRouter _router(String initialLocation) => GoRouter(
           // 노선 추가 플로우의 마지막 단계(노선 확인)까지 진행한 상태로 온보딩 화면을 띄운다
           builder: (_, __) => ChangeNotifierProvider(
             create: (_) => InitProvider(startIdx: InitProvider.stationStepIdx)
-              ..setSelectedRouteModel(_route51)
+              ..toggleSelectedRoute(_route51)
               ..nextAccountView()
               ..nextAccountView(),
             child: const InitSettingView(),

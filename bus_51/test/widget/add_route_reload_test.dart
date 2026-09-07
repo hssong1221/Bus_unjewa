@@ -80,7 +80,7 @@ void main() {
             path: InitSettingScreen.routeURL,
             builder: (_, __) => ChangeNotifierProvider(
               create: (_) => InitProvider(startIdx: InitProvider.stationStepIdx)
-                ..setSelectedRouteModel(route),
+                ..toggleSelectedRoute(route),
               child: const FavoriteSettingView(),
             ),
           ),

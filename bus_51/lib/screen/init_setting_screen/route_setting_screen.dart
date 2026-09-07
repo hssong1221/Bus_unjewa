@@ -43,7 +43,8 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final vm = context.watch<RouteSettingViewModel>();
-    final stationName = context.watch<InitProvider>().selectedStationModel?.stationName;
+    final initProvider = context.watch<InitProvider>();
+    final stationName = initProvider.selectedStationModel?.stationName;
 
     return Scaffold(
       body: Container(
@@ -59,11 +60,34 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> {
                     RouteSettingLoading() => _buildLoadingState(colorScheme),
                     RouteSettingEmpty() => _buildEmptyState(colorScheme),
                     RouteSettingError(:final message) => _buildErrorState(colorScheme, vm, message),
-                    RouteSettingSuccess(:final routes) => _buildRoutesList(routes),
+                    RouteSettingSuccess(:final routes) => _buildRoutesList(routes, initProvider),
                   },
                 ),
               ),
+              // 목록이 떠 있을 때만 하단 "N개 노선 선택 · 다음" 버튼
+              if (vm.state is RouteSettingSuccess) _buildNextButton(initProvider),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNextButton(InitProvider initProvider) {
+    final count = initProvider.selectedRouteModels.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: FilledButton.icon(
+          onPressed: count > 0 ? initProvider.nextAccountView : null,
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+          label: Text(
+            count > 0 ? '$count개 노선 선택 · 다음' : '노선을 선택해 주세요',
+            style: context.textStyle.labelLarge.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
       ),
@@ -185,27 +209,26 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> {
     );
   }
 
-  Widget _buildRoutesList(List<BusRouteModel> routes) {
+  Widget _buildRoutesList(List<BusRouteModel> routes, InitProvider initProvider) {
     final colorScheme = Theme.of(context).colorScheme;
-    final readInitProvider = context.read<InitProvider>();
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       itemCount: routes.length,
-      itemBuilder: (context, index) => _buildRouteItem(routes[index], colorScheme, readInitProvider),
+      itemBuilder: (context, index) => _buildRouteItem(routes[index], colorScheme, initProvider),
     );
   }
 
-  // 한 줄 행: [노선번호 배지] 종점 방면 / 버스종류 ›
-  Widget _buildRouteItem(BusRouteModel item, ColorScheme colorScheme, InitProvider readInitProvider) {
+  // 한 줄 행: [노선번호 배지] 종점 방면 / 버스종류 [체크]
+  // 탭하면 체크 토글. 다음 단계 이동은 하단 버튼이 담당한다
+  Widget _buildRouteItem(BusRouteModel item, ColorScheme colorScheme, InitProvider initProvider) {
     final busColor = BusColor().setColor(item.routeTypeCd);
+    final selected = initProvider.isRouteSelected(item);
 
     return AppCard(
       margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      onTap: () {
-        readInitProvider.setSelectedRouteModel(item);
-        readInitProvider.nextAccountView();
-      },
+      selected: selected,
+      onTap: () => initProvider.toggleSelectedRoute(item),
       child: Row(
         children: [
           // 노선번호 배지 (노선색은 여기만)
@@ -255,10 +278,20 @@ class _RouteSettingBodyState extends State<_RouteSettingBody> {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 16,
-            color: colorScheme.onSurface.withValues(alpha: 0.3),
+          // 체크박스 (선택 상태는 앱 초록)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: selected ? colorScheme.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: selected ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.3),
+                width: 2,
+              ),
+            ),
+            child: selected ? Icon(Icons.check_rounded, size: 16, color: colorScheme.onPrimary) : null,
           ),
         ],
       ),
