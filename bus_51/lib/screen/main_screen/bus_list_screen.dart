@@ -1,9 +1,11 @@
 import 'package:bus_51/model/user_save_model.dart';
+import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
+import 'package:bus_51/utils/arrival_time.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_list_view_model.dart';
 import 'package:bus_51/widget/app_card.dart';
@@ -25,7 +27,7 @@ class BusListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (_) => BusListViewModel(GetIt.I<StorageService>()),
+      create: (_) => BusListViewModel(GetIt.I<StorageService>(), GetIt.I<BusArrivalRepository>()),
       child: const BusListView(),
     );
   }
@@ -34,8 +36,9 @@ class BusListScreen extends StatelessWidget {
 // --------------------------------------------------
 // View
 // 화면 요소는 "내 버스" 타이틀 + 우측 상단 편집 알약 + 저장 노선 카드 + 우측 하단 노선 추가 플로팅 버튼.
-// 편집을 누르면 선택 모드 (헤더 "N개 선택됨 / 취소", 하단 삭제 바, 플로팅 버튼 숨김).
-// 카드는 노선번호 / → 종점 방면 / 승차 정류장 3줄 (같은 노선 양방향 구분용)
+// 편집을 누르면 선택 모드 (헤더 "N개 선택됨 / 완료", 하단 삭제 바, 플로팅 버튼 숨김, 손잡이 드래그로 순서 변경).
+// 카드는 왼쪽에 노선번호 / → 종점 방면 / 승차 정류장 3줄 (같은 노선 양방향 구분용),
+// 오른쪽에 다음 버스 남은 시간 / 몇 정거장 전 (들어가지 않아도 바로 보이게). 선택 모드에선 시간을 숨긴다
 // --------------------------------------------------
 class BusListView extends StatefulWidget {
   const BusListView({super.key});
@@ -51,19 +54,44 @@ class _BusListViewState extends State<BusListView> {
   /// 리스트 마지막 카드가 플로팅 버튼에 가려지지 않도록 비워두는 하단 여백
   static const double _fabClearance = 96;
 
+  /// 카드 우측 도착 정보 영역 최소 폭 (상태가 바뀌어도 왼쪽 텍스트가 흔들리지 않게)
+  static const double _arrivalMinWidth = 78;
+
   // Back button handling
   DateTime? _lastPressed;
 
-  /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화
+  @override
+  void initState() {
+    super.initState();
+    context.read<BusListViewModel>().loadArrivals();
+  }
+
+  /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화 + 도착 정보 다시 조회.
+  /// 다른 화면에 있는 동안은 갱신을 멈춘다 (노선 수만큼 API 를 부르므로)
   void _goToAddRoute() {
-    final viewModel = context.read<BusListViewModel>();
+    final viewModel = context.read<BusListViewModel>()..pause();
     context
         .pushNamed(
           InitSettingScreen.routeName,
           queryParameters: {'startFromStation': 'true'},
         )
         .then((_) {
-      if (mounted) viewModel.reload();
+      if (!mounted) return;
+      viewModel.reload();
+      viewModel.resume();
+    });
+  }
+
+  /// 상세(메인) 화면으로 이동. 돌아오면 도착 정보 다시 조회
+  void _goToDetail(UserSaveModel item) {
+    final viewModel = context.read<BusListViewModel>()..pause();
+    context
+        .pushNamed(
+          BusMainScreen.routeName,
+          queryParameters: {'idx': viewModel.indexOf(item).toString()},
+        )
+        .then((_) {
+      if (mounted) viewModel.resume();
     });
   }
 
@@ -154,9 +182,9 @@ class _BusListViewState extends State<BusListView> {
                   ),
                 ),
         ),
-        // 우측 상단: 편집(선택 모드 진입) / 취소. 빈 상태는 삭제할 게 없으니 비운다
+        // 우측 상단: 편집(선택 모드 진입) / 완료(순서·삭제는 즉시 반영되므로 되돌릴 게 없어 취소가 아니다). 빈 상태는 비운다
         if (isSelectionMode)
-          _buildPillButton(colorScheme, label: '취소', onPressed: viewModel.toggleSelectionMode)
+          _buildPillButton(colorScheme, label: '완료', onPressed: viewModel.toggleSelectionMode)
         else if (viewModel.hasItems)
           _buildPillButton(
             colorScheme,
@@ -168,7 +196,7 @@ class _BusListViewState extends State<BusListView> {
     );
   }
 
-  /// 헤더 우측의 낮은 알약 버튼 (편집 / 취소)
+  /// 헤더 우측의 낮은 알약 버튼 (편집 / 완료)
   Widget _buildPillButton(
     ColorScheme colorScheme, {
     required String label,
@@ -258,13 +286,41 @@ class _BusListViewState extends State<BusListView> {
         BusListEmpty() => _buildEmptyState(colorScheme),
         BusListSuccess(items: final items) => Stack(
             children: [
-              ListView.separated(
-                physics: const BouncingScrollPhysics(),
-                padding: EdgeInsets.only(bottom: showFab ? _fabClearance : 0),
-                itemCount: items.length,
-                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-                itemBuilder: (context, index) => _buildRouteItem(items[index], colorScheme, viewModel),
-              ),
+              if (viewModel.isSelectionMode)
+                // 선택 모드: 손잡이(≡)를 끌어 순서 변경. 구분자 대신 카드 아래 여백으로 간격을 준다
+                ReorderableListView.builder(
+                  physics: const BouncingScrollPhysics(),
+                  buildDefaultDragHandles: false,
+                  onReorderItem: viewModel.move,
+                  // 기본 장식은 항목(카드 + 아래 간격) 전체에 그림자 상자를 그려 카드 밖까지 튀어나온다.
+                  // 간격은 투명하게 두고 카드만 살짝 키워서 들어 올린 느낌을 준다
+                  proxyDecorator: (child, _, animation) => AnimatedBuilder(
+                    animation: animation,
+                    builder: (_, child) => Transform.scale(
+                      scale: 1 + 0.03 * Curves.easeInOut.transform(animation.value),
+                      child: child,
+                    ),
+                    child: Material(type: MaterialType.transparency, child: child),
+                  ),
+                  itemCount: items.length,
+                  itemBuilder: (context, index) => Padding(
+                    key: ValueKey(BusListViewModel.keyOf(items[index])),
+                    padding: EdgeInsets.only(bottom: index == items.length - 1 ? 0 : AppSpacing.md),
+                    child: _buildRouteItem(items[index], colorScheme, viewModel, index: index),
+                  ),
+                )
+              else
+                // 당겨서 새로고침: 카드 전부 다시 조회
+                RefreshIndicator(
+                  onRefresh: viewModel.refresh,
+                  child: ListView.separated(
+                    physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+                    padding: EdgeInsets.only(bottom: showFab ? _fabClearance : 0),
+                    itemCount: items.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                    itemBuilder: (context, index) => _buildRouteItem(items[index], colorScheme, viewModel, index: index),
+                  ),
+                ),
               // 플로팅 버튼 뒤로 카드가 흰색으로 스르륵 사라지는 페이드
               if (showFab)
                 Positioned(
@@ -290,23 +346,14 @@ class _BusListViewState extends State<BusListView> {
     );
   }
 
-  Widget _buildRouteItem(UserSaveModel item, ColorScheme colorScheme, BusListViewModel viewModel) {
+  Widget _buildRouteItem(UserSaveModel item, ColorScheme colorScheme, BusListViewModel viewModel, {required int index}) {
     final isSelectionMode = viewModel.isSelectionMode;
     final isSelected = viewModel.isSelected(item);
     final busColor = BusColor().setColor(item.routeTypeCd);
 
     return AppCard(
       selected: isSelected,
-      onTap: () {
-        if (isSelectionMode) {
-          viewModel.toggleSelection(item);
-        } else {
-          context.pushNamed(
-            BusMainScreen.routeName,
-            queryParameters: {'idx': viewModel.indexOf(item).toString()},
-          );
-        }
-      },
+      onTap: () => isSelectionMode ? viewModel.toggleSelection(item) : _goToDetail(item),
       child: Row(
         children: [
           // 선택 모드: 체크 원
@@ -372,15 +419,127 @@ class _BusListViewState extends State<BusListView> {
               ],
             ),
           ),
-          if (!isSelectionMode) ...[
-            const SizedBox(width: AppSpacing.sm),
-            Icon(
-              Icons.arrow_forward_ios,
-              color: colorScheme.onSurface.withValues(alpha: 0.3),
-              size: 16,
-            ),
+          // 오른쪽: 선택 모드면 순서 변경 손잡이, 아니면 다음 버스 도착 정보
+          if (isSelectionMode)
+            ReorderableDragStartListener(
+              index: index,
+              child: Padding(
+                padding: const EdgeInsets.only(left: AppSpacing.md),
+                child: Icon(
+                  Icons.drag_handle_rounded,
+                  color: colorScheme.onSurface.withValues(alpha: 0.35),
+                  size: 24,
+                ),
+              ),
+            )
+          else ...[
+            const SizedBox(width: AppSpacing.md),
+            _buildArrival(viewModel.arrivalOf(item), busColor, colorScheme, onRetry: () => viewModel.retry(item)),
           ],
         ],
+      ),
+    );
+  }
+
+  /// 카드 우측 도착 정보: 로딩 스켈레톤 / MM:SS + N정거장 전 / 잠시 후 도착 / 운행 없음 / 오류
+  Widget _buildArrival(
+    BusCardArrival arrival,
+    Color busColor,
+    ColorScheme colorScheme, {
+    required VoidCallback onRetry,
+  }) {
+    final muted = colorScheme.onSurface.withValues(alpha: 0.55);
+    final mutedStyle = context.textStyle.labelSmall.copyWith(color: muted, fontWeight: FontWeight.w600);
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: _arrivalMinWidth),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: switch (arrival) {
+          BusCardLoading() => [
+              _buildSkeleton(colorScheme, width: 64, height: 22),
+              const SizedBox(height: 6),
+              _buildSkeleton(colorScheme, width: 48, height: 10),
+            ],
+          BusCardArriving(:final remainingSeconds, :final locationNo) => [
+              if (isArrivingSoon(remainingSeconds))
+                Text(
+                  kArrivingSoonLabel,
+                  style: context.textStyle.titleMedium.copyWith(
+                    color: busColor,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
+                )
+              else
+                Text(
+                  formatMmss(remainingSeconds),
+                  style: context.textStyle.headlineLarge.copyWith(
+                    color: busColor,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -1,
+                    height: 1.05,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              const SizedBox(height: 3),
+              Text('$locationNo정거장 전', style: mutedStyle),
+            ],
+          BusCardNotOperating() => [
+              Text(
+                '운행 없음',
+                style: context.textStyle.bodyMedium.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.4),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                '출발 전 · 운행 종료',
+                style: context.textStyle.labelSmall.copyWith(
+                  color: colorScheme.onSurface.withValues(alpha: 0.4),
+                ),
+              ),
+            ],
+          BusCardError() => [
+              Text('불러오지 못함', style: mutedStyle.copyWith(fontSize: 13)),
+              const SizedBox(height: 4),
+              // 이 카드만 재조회
+              InkWell(
+                onTap: onRetry,
+                borderRadius: BorderRadius.circular(AppRadius.inner),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: 2),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.refresh, size: 14, color: colorScheme.primary),
+                      const SizedBox(width: 3),
+                      Text(
+                        '다시 시도',
+                        style: context.textStyle.labelSmall.copyWith(
+                          color: colorScheme.primary,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+        },
+      ),
+    );
+  }
+
+  Widget _buildSkeleton(ColorScheme colorScheme, {required double width, required double height}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(6),
       ),
     );
   }

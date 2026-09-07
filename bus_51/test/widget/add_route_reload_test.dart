@@ -1,6 +1,8 @@
+import 'package:bus_51/model/bus_arrival_model.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/init_setting_screen/favorite_setting_screen.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
@@ -15,6 +17,16 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+/// 도착 정보는 이 테스트의 관심사가 아니라 전부 운행 없음(null)으로 돌려준다
+class NullBusArrivalRepository implements BusArrivalRepository {
+  @override
+  Future<BusArrivalModel?> getArrival({
+    required String stationId,
+    required String routeId,
+    required String staOrder,
+  }) async => null;
+}
 
 class FakeBusRouteStationRepository implements BusRouteStationRepository {
   FakeBusRouteStationRepository(this.stations);
@@ -58,6 +70,7 @@ void main() {
       cacheOptions: const SharedPreferencesWithCacheOptions(),
     );
     GetIt.I.registerSingleton<StorageService>(StorageService(prefs));
+    GetIt.I.registerSingleton<BusArrivalRepository>(NullBusArrivalRepository());
     GetIt.I.registerSingleton<BusRouteStationRepository>(
       FakeBusRouteStationRepository([for (var i = 1; i <= 4; i++) makeStation(i)]),
     );

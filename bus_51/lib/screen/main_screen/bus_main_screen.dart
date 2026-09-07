@@ -8,6 +8,7 @@ import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
+import 'package:bus_51/utils/arrival_time.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
 import 'package:bus_51/widget/app_card.dart';
@@ -80,12 +81,6 @@ class _BusMainViewState extends State<BusMainView> {
   void dispose() {
     _timelineScrollController.dispose();
     super.dispose();
-  }
-
-  /// 남은 초 → MM:SS (60분 이상이면 분이 세 자리로 늘어남)
-  static String _mmss(int seconds) {
-    final s = seconds < 0 ? 0 : seconds;
-    return '${(s ~/ 60).toString().padLeft(2, '0')}:${(s % 60).toString().padLeft(2, '0')}';
   }
 
   void _goBackToList() => context.goNamed(BusListScreen.routeName);
@@ -442,17 +437,33 @@ class _BusMainViewState extends State<BusMainView> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    Text(
-                      _mmss(vm.remainingSeconds1),
-                      style: context.textStyle.headlineLarge.copyWith(
-                        color: busColor,
-                        fontSize: 74,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -3,
-                        height: 1.05,
-                        fontFeatures: const [FontFeature.tabularFigures()],
+                    // 2분 미만이면 숫자 대신 "잠시 후 도착" 글자가 들어가므로 크기를 줄인다
+                    if (isArrivingSoon(vm.remainingSeconds1))
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+                        child: Text(
+                          kArrivingSoonLabel,
+                          style: context.textStyle.headlineLarge.copyWith(
+                            color: busColor,
+                            fontSize: 34,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -1,
+                            height: 1.2,
+                          ),
+                        ),
+                      )
+                    else
+                      Text(
+                        formatMmss(vm.remainingSeconds1),
+                        style: context.textStyle.headlineLarge.copyWith(
+                          color: busColor,
+                          fontSize: 74,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -3,
+                          height: 1.05,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
-                    ),
                     const SizedBox(height: AppSpacing.xs),
                     Text(
                       '${item.locationNo1}정거장 전 · ${item.stationNm1}',
@@ -483,7 +494,7 @@ class _BusMainViewState extends State<BusMainView> {
                     // 차량이 한 대만 운행 중이면 두 번째 버스 필드가 "" 로 온다
                     if (item.hasBus2) ...[
                       Text(
-                        _mmss(vm.remainingSeconds2),
+                        formatArrival(vm.remainingSeconds2),
                         style: context.textStyle.titleMedium.copyWith(
                           color: colorScheme.onSurface.withValues(alpha: 0.8),
                           fontWeight: FontWeight.w700,
@@ -552,7 +563,7 @@ class _BusMainViewState extends State<BusMainView> {
                 ),
                 const Spacer(),
                 Text(
-                  _mmss(vm.remainingSeconds1),
+                  formatArrival(vm.remainingSeconds1),
                   style: context.textStyle.titleMedium.copyWith(
                     color: busColor,
                     fontWeight: FontWeight.w800,

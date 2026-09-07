@@ -17,8 +17,8 @@ class StorageService {
     _prefs.remove(_userSaveKey);
   }
 
-  //save
-  Future<void> _saveUserModelList(List<UserSaveModel> users) async {
+  /// 전체 리스트를 통째로 저장 (순서 변경처럼 리스트 자체가 바뀔 때)
+  Future<void> saveUserModelList(List<UserSaveModel> users) async {
     final userListJson = jsonEncode(users.map((user) => user.toMap()).toList());
     await _prefs.setString(_userSaveKey, userListJson);
   }
@@ -57,7 +57,7 @@ class StorageService {
 
     if (!exists) {
       list.add(newUser);
-      await _saveUserModelList(list);
+      await saveUserModelList(list);
     }
     // 이미 있으면 아무것도 하지 않음
   }
@@ -75,6 +75,6 @@ class StorageService {
       }
     }
 
-    await _saveUserModelList(list);
+    await saveUserModelList(list);
   }
 }

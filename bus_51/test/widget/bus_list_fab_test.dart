@@ -1,4 +1,6 @@
+import 'package:bus_51/model/bus_arrival_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
+import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
@@ -10,6 +12,16 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+/// 도착 정보는 이 테스트의 관심사가 아니라 전부 운행 없음(null)으로 돌려준다
+class NullBusArrivalRepository implements BusArrivalRepository {
+  @override
+  Future<BusArrivalModel?> getArrival({
+    required String stationId,
+    required String routeId,
+    required String staOrder,
+  }) async => null;
+}
 
 UserSaveModel makeUser(int stationId, String routeName) => UserSaveModel(
       stationId: stationId,
@@ -31,6 +43,7 @@ void main() {
     );
     storage = StorageService(prefs);
     GetIt.I.registerSingleton<StorageService>(storage);
+    GetIt.I.registerSingleton<BusArrivalRepository>(NullBusArrivalRepository());
   });
 
   tearDown(() async => GetIt.I.reset());
@@ -74,7 +87,7 @@ void main() {
     expect(fabCenter.dy, greaterThan(size.height * 0.75));
   });
 
-  testWidgets('편집을 누르면 선택 모드: 취소·삭제 바가 나오고 플로팅 버튼은 숨는다', (tester) async {
+  testWidgets('편집을 누르면 선택 모드: 완료·삭제 바가 나오고 플로팅 버튼은 숨는다', (tester) async {
     await storage.addUserSaveModel(makeUser(1, '51'));
     await tester.pumpWidget(buildApp());
     await tester.pumpAndSettle();
@@ -83,13 +96,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('0개 선택됨'), findsOneWidget);
-    expect(find.text('취소'), findsOneWidget);
+    expect(find.text('완료'), findsOneWidget);
     expect(find.text('전체 삭제'), findsOneWidget);
     expect(find.text('선택 삭제 (0)'), findsOneWidget);
     expect(fab, findsNothing);
     expect(find.text('편집'), findsNothing);
 
-    await tester.tap(find.text('취소'));
+    await tester.tap(find.text('완료'));
     await tester.pumpAndSettle();
 
     expect(find.text('편집'), findsOneWidget);
