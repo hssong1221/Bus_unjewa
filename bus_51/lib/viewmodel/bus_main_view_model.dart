@@ -107,16 +107,29 @@ class BusMainViewModel extends ChangeNotifier {
 
   static const Duration _refreshInterval = Duration(seconds: 60);
 
-  /// 최초 진입: 도착 정보 조회 후 60초 주기 자동 갱신 시작
-  Future<void> init() async {
+  /// 최초 진입: 60초 주기 자동 갱신을 걸고 도착 정보를 조회한다
+  Future<void> init() {
     if (userModel == null) {
       _state = const BusMainError('저장된 버스 정보를 찾을 수 없습니다');
       notifyListeners();
-      return;
+      return Future.value();
     }
-    await _fetchArrival();
+    // 타이머를 먼저 걸어야 응답을 기다리는 사이 pause() 가 불려도 타이머가 살아남지 않는다
+    _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(_refreshInterval, (_) => _fetchArrival());
+    return _fetchArrival();
   }
+
+  /// 앱이 백그라운드로 가면 자동 갱신·카운트다운 정지 (보지 않는 화면에 API 를 쓰지 않는다)
+  void pause() {
+    _refreshTimer?.cancel();
+    _refreshTimer = null;
+    _countdownTimer?.cancel();
+    _countdownTimer = null;
+  }
+
+  /// 다시 보일 때 바로 조회하고 자동 갱신 재개
+  Future<void> resume() => init();
 
   /// 수동 새로고침 (당겨서 새로고침, 재시도 버튼)
   Future<void> refresh() => _fetchArrival();
@@ -218,8 +231,7 @@ class BusMainViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
-    _refreshTimer?.cancel();
-    _countdownTimer?.cancel();
+    pause();
     super.dispose();
   }
 }

@@ -60,10 +60,32 @@ class _BusListViewState extends State<BusListView> {
   // Back button handling
   DateTime? _lastPressed;
 
+  /// 앱이 백그라운드로 가면 갱신을 멈추고, 다시 보이면 재조회한다 (보지 않는 동안 API 를 쓰지 않도록).
+  /// onResume 이 아니라 onShow 를 쓰는 이유: 알림창을 내렸다 올리는 것만으로도 inactive ↔ resumed 가
+  /// 오가며 onResume 이 불리는데, 그때는 멈춘 적이 없으니 다시 조회할 이유가 없다
+  late final AppLifecycleListener _lifecycleListener;
+
   @override
   void initState() {
     super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onHide: () => context.read<BusListViewModel>().pause(),
+      onShow: _resumeIfVisible,
+    );
     context.read<BusListViewModel>().loadArrivals();
+  }
+
+  /// 상세·노선 추가 화면이 위에 떠 있으면 그 화면에서 돌아올 때 resume 하므로 여기서는 건너뛴다
+  void _resumeIfVisible() {
+    if (ModalRoute.of(context)?.isCurrent ?? true) {
+      context.read<BusListViewModel>().resume();
+    }
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
   }
 
   /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화 + 도착 정보 다시 조회.

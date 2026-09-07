@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bus_51/model/bus_arrival_model.dart';
 import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
@@ -15,6 +17,9 @@ class FakeBusArrivalRepository implements BusArrivalRepository {
   ApiException? exception;
   int callCount = 0;
 
+  /// 설정하면 이 Completer 가 완료될 때까지 응답을 붙잡는다 (요청 진행 중 상태를 만들 때)
+  Completer<void>? gate;
+
   @override
   Future<BusArrivalModel?> getArrival({
     required String stationId,
@@ -22,6 +27,7 @@ class FakeBusArrivalRepository implements BusArrivalRepository {
     required String staOrder,
   }) async {
     callCount++;
+    if (gate != null) await gate!.future;
     if (exception != null) throw exception!;
     return arrival;
   }
@@ -202,6 +208,54 @@ void main() {
         async.elapse(const Duration(seconds: 10));
         expect(vm.remainingSeconds1, 0);
         expect(vm.remainingSeconds2, 0);
+
+        vm.dispose();
+      });
+    });
+
+    test('pause 하면 갱신·카운트다운이 멈추고 resume 하면 바로 다시 조회한다', () {
+      fakeAsync((async) {
+        final repo = FakeBusArrivalRepository(arrival: makeArrival(sec1: '300', sec2: '600'));
+        final vm = makeViewModel(repo);
+
+        vm.init();
+        async.flushMicrotasks();
+        expect(repo.callCount, 1);
+        vm.pause();
+
+        // 백그라운드 3분: 60초 갱신도 1초 카운트다운도 돌지 않는다
+        async.elapse(const Duration(minutes: 3));
+        expect(repo.callCount, 1);
+        expect(vm.remainingSeconds1, 300);
+
+        vm.resume();
+        async.flushMicrotasks();
+        expect(repo.callCount, 2);
+        async.elapse(const Duration(seconds: 1));
+        expect(vm.remainingSeconds1, 299);
+        async.elapse(const Duration(seconds: 59));
+        expect(repo.callCount, 3);
+
+        vm.dispose();
+      });
+    });
+
+    test('첫 응답을 기다리는 사이 pause 되면 자동 갱신 타이머가 남지 않는다', () {
+      fakeAsync((async) {
+        final repo = FakeBusArrivalRepository(arrival: makeArrival())..gate = Completer<void>();
+        final vm = makeViewModel(repo);
+
+        vm.init();
+        async.flushMicrotasks();
+        expect(repo.callCount, 1);
+        vm.pause(); // 화면을 열자마자 백그라운드로
+
+        repo.gate!.complete();
+        async.flushMicrotasks();
+        expect(vm.state, isA<BusMainSuccess>());
+
+        async.elapse(const Duration(minutes: 3));
+        expect(repo.callCount, 1);
 
         vm.dispose();
       });

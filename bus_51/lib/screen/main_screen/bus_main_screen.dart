@@ -77,8 +77,21 @@ class _BusMainViewState extends State<BusMainView> {
     }
   }
 
+  /// 앱이 백그라운드로 가면 갱신·카운트다운을 멈추고, 다시 보이면 재조회한다 (리스트 화면과 같은 이유로 onShow)
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onHide: () => context.read<BusMainViewModel>().pause(),
+      onShow: () => context.read<BusMainViewModel>().resume(),
+    );
+  }
+
   @override
   void dispose() {
+    _lifecycleListener.dispose();
     _timelineScrollController.dispose();
     super.dispose();
   }
