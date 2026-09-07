@@ -33,7 +33,8 @@ class BusListScreen extends StatelessWidget {
 
 // --------------------------------------------------
 // View
-// 화면 요소는 "내 버스" 타이틀 + 저장 노선 카드 + 삭제 버튼뿐.
+// 화면 요소는 "내 버스" 타이틀 + 우측 상단 편집 알약 + 저장 노선 카드 + 우측 하단 노선 추가 플로팅 버튼.
+// 편집을 누르면 선택 모드 (헤더 "N개 선택됨 / 취소", 하단 삭제 바, 플로팅 버튼 숨김).
 // 카드는 노선번호 / → 종점 방면 / 승차 정류장 3줄 (같은 노선 양방향 구분용)
 // --------------------------------------------------
 class BusListView extends StatefulWidget {
@@ -45,6 +46,10 @@ class BusListView extends StatefulWidget {
 
 class _BusListViewState extends State<BusListView> {
   static const double _buttonHeight = 52;
+  static const double _fabSize = 56;
+
+  /// 리스트 마지막 카드가 플로팅 버튼에 가려지지 않도록 비워두는 하단 여백
+  static const double _fabClearance = 96;
 
   // Back button handling
   DateTime? _lastPressed;
@@ -84,6 +89,8 @@ class _BusListViewState extends State<BusListView> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     final viewModel = context.watch<BusListViewModel>();
+    // 빈 상태는 가운데 "첫 노선 추가하기"가 있고, 선택 모드는 삭제 중이므로 플로팅 버튼을 숨긴다
+    final showFab = viewModel.hasItems && !viewModel.isSelectionMode;
 
     return PopScope(
       canPop: false,
@@ -106,6 +113,7 @@ class _BusListViewState extends State<BusListView> {
       },
       child: Scaffold(
         backgroundColor: colorScheme.surface,
+        floatingActionButton: showFab ? _buildAddFab(colorScheme) : null,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
@@ -114,8 +122,8 @@ class _BusListViewState extends State<BusListView> {
               children: [
                 _buildHeader(colorScheme, viewModel),
                 const SizedBox(height: AppSpacing.lg),
-                _buildBody(colorScheme, viewModel),
-                if (viewModel.hasItems) _buildActionButtons(colorScheme, viewModel),
+                _buildBody(colorScheme, viewModel, showFab: showFab),
+                if (viewModel.isSelectionMode) _buildDeleteBar(colorScheme, viewModel),
               ],
             ),
           ),
@@ -146,51 +154,137 @@ class _BusListViewState extends State<BusListView> {
                   ),
                 ),
         ),
+        // 우측 상단: 편집(선택 모드 진입) / 취소. 빈 상태는 삭제할 게 없으니 비운다
         if (isSelectionMode)
-          _buildCircleButton(
-            background: colorScheme.surfaceContainerHighest,
-            icon: Icon(Icons.close, color: colorScheme.onSurface),
+          _buildPillButton(colorScheme, label: '취소', onPressed: viewModel.toggleSelectionMode)
+        else if (viewModel.hasItems)
+          _buildPillButton(
+            colorScheme,
+            label: '편집',
+            icon: Icons.edit_outlined,
             onPressed: viewModel.toggleSelectionMode,
-            tooltip: '선택 취소',
-          )
-        else
-          _buildCircleButton(
-            background: colorScheme.primary,
-            icon: Icon(Icons.add, color: colorScheme.onPrimary),
-            onPressed: _goToAddRoute,
-            tooltip: '새 버스 노선 추가하기',
           ),
       ],
     );
   }
 
-  Widget _buildCircleButton({
-    required Color background,
-    required Icon icon,
+  /// 헤더 우측의 낮은 알약 버튼 (편집 / 취소)
+  Widget _buildPillButton(
+    ColorScheme colorScheme, {
+    required String label,
+    IconData? icon,
     required VoidCallback onPressed,
-    required String tooltip,
   }) {
+    final foreground = colorScheme.onSurface.withValues(alpha: 0.75);
+
     return Material(
-      color: background,
-      shape: const CircleBorder(),
+      color: colorScheme.onSurface.withValues(alpha: 0.06),
+      shape: const StadiumBorder(),
       clipBehavior: Clip.antiAlias,
-      child: IconButton(
-        onPressed: onPressed,
-        icon: icon,
-        tooltip: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, size: 16, color: foreground),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                label,
+                style: context.textStyle.labelMedium.copyWith(
+                  color: foreground,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  Widget _buildBody(ColorScheme colorScheme, BusListViewModel viewModel) {
+  /// 우측 하단 노선 추가 플로팅 버튼: 초록 사선 그라데이션 + 초록빛 그림자
+  Widget _buildAddFab(ColorScheme colorScheme) {
+    final highlight = Color.lerp(colorScheme.primary, Colors.white, 0.12)!;
+
+    return Padding(
+      padding: const EdgeInsets.only(right: AppSpacing.xs, bottom: AppSpacing.sm),
+      child: Container(
+        width: _fabSize,
+        height: _fabSize,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [highlight, colorScheme.primary],
+            stops: const [0, 0.7],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withValues(alpha: 0.32),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: colorScheme.shadow.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: _goToAddRoute,
+            child: Tooltip(
+              message: '노선 추가',
+              child: Icon(Icons.add_rounded, color: colorScheme.onPrimary, size: 28),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(ColorScheme colorScheme, BusListViewModel viewModel, {required bool showFab}) {
     return Expanded(
       child: switch (viewModel.state) {
         BusListEmpty() => _buildEmptyState(colorScheme),
-        BusListSuccess(items: final items) => ListView.separated(
-            physics: const BouncingScrollPhysics(),
-            itemCount: items.length,
-            separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
-            itemBuilder: (context, index) => _buildRouteItem(items[index], colorScheme, viewModel),
+        BusListSuccess(items: final items) => Stack(
+            children: [
+              ListView.separated(
+                physics: const BouncingScrollPhysics(),
+                padding: EdgeInsets.only(bottom: showFab ? _fabClearance : 0),
+                itemCount: items.length,
+                separatorBuilder: (_, __) => const SizedBox(height: AppSpacing.md),
+                itemBuilder: (context, index) => _buildRouteItem(items[index], colorScheme, viewModel),
+              ),
+              // 플로팅 버튼 뒤로 카드가 흰색으로 스르륵 사라지는 페이드
+              if (showFab)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      height: 72,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [colorScheme.surface.withValues(alpha: 0), colorScheme.surface],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
       },
     );
@@ -309,75 +403,57 @@ class _BusListViewState extends State<BusListView> {
     );
   }
 
-  Widget _buildActionButtons(ColorScheme colorScheme, BusListViewModel viewModel) {
+  /// 선택 모드 하단 바: 전체 삭제 (작게) + 선택 삭제 (N)
+  Widget _buildDeleteBar(ColorScheme colorScheme, BusListViewModel viewModel) {
     final hasSelection = viewModel.selectedCount > 0;
 
     return Padding(
       padding: const EdgeInsets.only(top: AppSpacing.lg),
-      child: viewModel.isSelectionMode
-          ? Row(
-              children: [
-                // 전체 삭제 (왼쪽, 작게)
-                SizedBox(
-                  width: 100,
-                  height: 42,
-                  child: OutlinedButton(
-                    onPressed: () => _showAllDeleteConfirmDialog(context, viewModel),
-                    style: OutlinedButton.styleFrom(
-                      side: BorderSide(color: colorScheme.error.withValues(alpha: 0.4)),
-                      foregroundColor: colorScheme.error,
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.inner),
-                      ),
-                    ),
-                    child: Text(
-                      '전체 삭제',
-                      style: context.textStyle.labelMedium.copyWith(fontWeight: FontWeight.w600),
-                    ),
-                  ),
+      child: Row(
+        children: [
+          // 전체 삭제 (왼쪽, 작게)
+          SizedBox(
+            width: 100,
+            height: 42,
+            child: OutlinedButton(
+              onPressed: () => _showAllDeleteConfirmDialog(context, viewModel),
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: colorScheme.error.withValues(alpha: 0.4)),
+                foregroundColor: colorScheme.error,
+                padding: EdgeInsets.zero,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.inner),
                 ),
-                const SizedBox(width: AppSpacing.md),
-                // 선택 삭제 (오른쪽, 큰 영역)
-                Expanded(
-                  child: SizedBox(
-                    height: _buttonHeight,
-                    child: FilledButton.icon(
-                      onPressed: hasSelection ? () => _showSelectedDeleteConfirmDialog(context, viewModel) : null,
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      label: Text(
-                        '선택 삭제 (${viewModel.selectedCount})',
-                        style: context.textStyle.labelLarge.copyWith(fontWeight: FontWeight.w600),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: colorScheme.error,
-                        foregroundColor: colorScheme.onError,
-                        disabledBackgroundColor: colorScheme.surfaceContainerHighest,
-                        disabledForegroundColor: colorScheme.onSurface.withValues(alpha: 0.4),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            )
-          : SizedBox(
-              width: double.infinity,
+              ),
+              child: Text(
+                '전체 삭제',
+                style: context.textStyle.labelMedium.copyWith(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          // 선택 삭제 (오른쪽, 큰 영역)
+          Expanded(
+            child: SizedBox(
               height: _buttonHeight,
-              child: OutlinedButton(
-                onPressed: viewModel.toggleSelectionMode,
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: colorScheme.outline.withValues(alpha: 0.3)),
-                  foregroundColor: colorScheme.onSurface.withValues(alpha: 0.8),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                  ),
-                ),
-                child: Text(
-                  '노선 삭제하기',
+              child: FilledButton.icon(
+                onPressed: hasSelection ? () => _showSelectedDeleteConfirmDialog(context, viewModel) : null,
+                icon: const Icon(Icons.delete_outline, size: 20),
+                label: Text(
+                  '선택 삭제 (${viewModel.selectedCount})',
                   style: context.textStyle.labelLarge.copyWith(fontWeight: FontWeight.w600),
+                ),
+                style: FilledButton.styleFrom(
+                  backgroundColor: colorScheme.error,
+                  foregroundColor: colorScheme.onError,
+                  disabledBackgroundColor: colorScheme.surfaceContainerHighest,
+                  disabledForegroundColor: colorScheme.onSurface.withValues(alpha: 0.4),
                 ),
               ),
             ),
+          ),
+        ],
+      ),
     );
   }
 
