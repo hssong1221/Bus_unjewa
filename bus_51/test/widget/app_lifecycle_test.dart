@@ -7,6 +7,7 @@ import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/light_theme.dart';
+import 'package:bus_51/viewmodel/bus_list_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -126,7 +127,7 @@ void main() {
     await tester.pump();
   }
 
-  testWidgets('리스트: 백그라운드에서는 2분 갱신이 멈추고, 돌아오면 바로 다시 조회한다', (tester) async {
+  testWidgets('리스트: 백그라운드에서는 2분 갱신이 멈추고, 돌아오면 갱신이 재개된다', (tester) async {
     await pumpList(tester);
     expect(repo.callCount, 1);
 
@@ -134,7 +135,11 @@ void main() {
     await tester.pump(const Duration(minutes: 5));
     expect(repo.callCount, 1);
 
+    // VM 은 실제 시계를 쓰므로 위젯 테스트에서는 30초 유효기간 안 → 돌아와도 바로 받지 않고
+    // 2분 갱신 타이머만 다시 돈다 (유효기간 자체는 VM 단위 테스트에서 검증)
     await setLifecycle(tester, AppLifecycleState.resumed);
+    expect(repo.callCount, 1);
+    await tester.pump(BusListViewModel.refreshInterval);
     expect(repo.callCount, 2);
   });
 

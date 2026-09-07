@@ -88,8 +88,8 @@ class _BusListViewState extends State<BusListView> {
     super.dispose();
   }
 
-  /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화 + 도착 정보 다시 조회.
-  /// 다른 화면에 있는 동안은 갱신을 멈춘다 (노선 수만큼 API 를 부르므로)
+  /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화 + 갱신 재개 (새 카드가 있으니 다시 조회하게 된다).
+  /// 다른 화면에 있는 동안은 갱신을 멈춘다 (정류장 수만큼 API 를 부르므로)
   void _goToAddRoute() {
     final viewModel = context.read<BusListViewModel>()..pause();
     context
@@ -104,7 +104,7 @@ class _BusListViewState extends State<BusListView> {
     });
   }
 
-  /// 상세(메인) 화면으로 이동. 돌아오면 도착 정보 다시 조회
+  /// 상세(메인) 화면으로 이동. 돌아오면 갱신 재개 (30초 안이면 다시 받지 않고 카운트다운만 이어간다)
   void _goToDetail(UserSaveModel item) {
     final viewModel = context.read<BusListViewModel>()..pause();
     context

@@ -108,9 +108,10 @@ BusArrivalModel makeArrival({
       staOrder: staOrder,
     );
 
-/// 도착 조회를 쓰지 않는 테스트는 저장소만 넘긴다
-BusListViewModel makeVm(StorageService storage, {BusArrivalRepository? repo}) =>
-    BusListViewModel(storage, repo ?? FakeBusArrivalRepository());
+/// 도착 조회를 쓰지 않는 테스트는 저장소만 넘긴다.
+/// pause/resume 을 검증하는 fakeAsync 테스트는 [now] 에 `async.getClock(...).now` 를 넣어 가짜 시간을 흐르게 한다
+BusListViewModel makeVm(StorageService storage, {BusArrivalRepository? repo, DateTime Function()? now}) =>
+    BusListViewModel(storage, repo ?? FakeBusArrivalRepository(), now: now);
 void main() {
   group('BusListViewModel 상태', () {
     test('저장된 노선이 없으면 Empty 상태가 된다', () {
@@ -317,11 +318,11 @@ void main() {
       });
     });
 
-    test('pause 하면 갱신·카운트다운이 멈추고 resume 하면 다시 조회한다', () {
+    test('pause 하면 갱신·카운트다운이 멈추고, 오래 지나서 resume 하면 다시 조회한다', () {
       fakeAsync((async) {
         final a = makeUser(stationId: 1);
         final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '300')]});
-        final vm = makeVm(FakeStorageService(items: [a]), repo: repo);
+        final vm = makeVm(FakeStorageService(items: [a]), repo: repo, now: async.getClock(DateTime(2026, 9, 7)).now);
 
         vm.loadArrivals();
         async.flushMicrotasks();
@@ -421,6 +422,83 @@ void main() {
       expect(vm.arrivalOf(c), isA<BusCardArriving>());
       expect(repo.callCount, 2);
       vm.dispose();
+    });
+  });
+
+  group('BusListViewModel 돌아왔을 때 재조회 생략', () {
+    test('마지막 조회가 30초 안이면 resume 은 다시 받지 않고, 멈춰 있던 카운트다운만 흐른 시간만큼 당긴다', () {
+      fakeAsync((async) {
+        final a = makeUser(stationId: 1);
+        final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '300')]});
+        final vm = makeVm(FakeStorageService(items: [a]), repo: repo, now: async.getClock(DateTime(2026, 9, 7)).now);
+
+        vm.loadArrivals();
+        async.flushMicrotasks();
+        expect(repo.callCount, 1);
+
+        // 5초 뒤 상세로 이동해 20초 머묾 (카운트다운은 멈춰 있다)
+        async.elapse(const Duration(seconds: 5));
+        vm.pause();
+        async.elapse(const Duration(seconds: 20));
+        expect((vm.arrivalOf(a) as BusCardArriving).remainingSeconds, 295);
+
+        vm.resume();
+        async.flushMicrotasks();
+        expect(repo.callCount, 1); // 조회 25초 뒤 → 다시 받지 않음
+        expect((vm.arrivalOf(a) as BusCardArriving).remainingSeconds, 275); // 멈춰 있던 20초를 당김
+
+        // 카운트다운과 2분 갱신 타이머는 다시 돈다
+        async.elapse(const Duration(seconds: 1));
+        expect((vm.arrivalOf(a) as BusCardArriving).remainingSeconds, 274);
+        async.elapse(const Duration(seconds: 119));
+        expect(repo.callCount, 2);
+
+        vm.dispose();
+      });
+    });
+
+    test('마지막 조회가 30초를 넘었으면 resume 은 다시 받는다', () {
+      fakeAsync((async) {
+        final a = makeUser(stationId: 1);
+        final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival(sec: '300')]});
+        final vm = makeVm(FakeStorageService(items: [a]), repo: repo, now: async.getClock(DateTime(2026, 9, 7)).now);
+
+        vm.loadArrivals();
+        async.flushMicrotasks();
+        vm.pause();
+        async.elapse(const Duration(seconds: 31));
+
+        vm.resume();
+        async.flushMicrotasks();
+
+        expect(repo.callCount, 2);
+        vm.dispose();
+      });
+    });
+
+    test('30초 안이어도 결과가 없는 카드가 있으면(노선 추가 직후) 다시 받는다', () {
+      fakeAsync((async) {
+        final a = makeUser(stationId: 1);
+        final b = makeUser(stationId: 2);
+        final storage = FakeStorageService(items: [a]);
+        final repo = FakeBusArrivalRepository(arrivals: {1: [makeArrival()], 2: [makeArrival()]});
+        final vm = makeVm(storage, repo: repo, now: async.getClock(DateTime(2026, 9, 7)).now);
+
+        vm.loadArrivals();
+        async.flushMicrotasks();
+        expect(repo.callCount, 1);
+
+        vm.pause();
+        async.elapse(const Duration(seconds: 10));
+        storage.items = [a, b];
+        vm.reload();
+        vm.resume();
+        async.flushMicrotasks();
+
+        expect(repo.callCount, 3); // 정류장 2개를 전부 다시 조회
+        expect(vm.arrivalOf(b), isA<BusCardArriving>());
+        vm.dispose();
+      });
     });
   });
 }
