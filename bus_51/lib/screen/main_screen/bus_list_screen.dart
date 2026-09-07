@@ -116,7 +116,7 @@ class _BusListViewState extends State<BusListView> {
         floatingActionButton: showFab ? _buildAddFab(colorScheme) : null,
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
