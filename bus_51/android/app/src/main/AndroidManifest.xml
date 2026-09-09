@@ -5,6 +5,11 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
+    <!-- 도착 알림: 포그라운드 서비스 (Android 14+ 는 서비스 종류 권한도 필요) + 알림 표시 (Android 13+ 런타임 권한) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <!-- 광고 없음: 광고 ID 미사용을 명시. 의존 SDK가 병합해 넣어도 최종 매니페스트에서 제거된다
          (Play 콘솔 "광고 ID" 선언과 일치시키기 위함) -->
     <uses-permission
@@ -42,6 +47,13 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+        <!-- 도착 알림 포그라운드 서비스 (flutter_foreground_task). 이름은 바꾸면 안 된다.
+             앱을 스와이프로 닫아도 계속 돌아야 하므로 stopWithTask 는 두지 않는다 -->
+        <service
+            android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

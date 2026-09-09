@@ -7,10 +7,13 @@ import 'package:bus_51/service/bus_api_service.dart';
 import 'package:bus_51/service/dio_singleton.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/light_theme.dart';
+import 'package:bus_51/tracking/bus_notifications.dart';
+import 'package:bus_51/tracking/bus_tracking_service.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_foreground_task/flutter_foreground_task.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
@@ -25,10 +28,15 @@ void setUp(SharedPreferencesWithCache prefs) {
   getIt.registerLazySingleton<BusStationRepository>(() => BusStationRepository(getIt<BusApiService>()));
   getIt.registerLazySingleton<BusRouteRepository>(() => BusRouteRepository(getIt<BusApiService>()));
   getIt.registerLazySingleton<BusRouteStationRepository>(() => BusRouteStationRepository(getIt<BusApiService>()));
+  // 도착 알림 (포그라운드 서비스 파사드)
+  getIt.registerLazySingleton<BusTrackingService>(() => FlutterForegroundBusTrackingService());
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  /// 도착 알림 서비스(별도 isolate)가 "끝났다"고 보내는 메시지를 받을 포트. 앱이 뜰 때 한 번 열어 둔다
+  FlutterForegroundTask.initCommunicationPort();
 
   /// 화면 세로 방향 고정
   await SystemChrome.setPreferredOrientations([
@@ -40,6 +48,9 @@ void main() async {
     cacheOptions: const SharedPreferencesWithCacheOptions(),
   );
   setUp(prefs);
+
+  /// 도착 알람 채널을 미리 만든다 (사용자가 설정에서 끌 수 있고, 켜기 전에 그 상태를 확인한다)
+  await initBusNotifications();
 
   /// Dio
   final Dio dio = DioSingleton.getInstance();

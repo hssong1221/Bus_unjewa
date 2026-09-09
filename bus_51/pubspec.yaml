@@ -65,7 +65,8 @@ dependencies:
   # Freezed for immutable data classes
   freezed_annotation: ^3.1.0
   json_annotation: ^4.9.0
-
+  flutter_foreground_task: ^11.0.3
+  flutter_local_notifications: ^22.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
