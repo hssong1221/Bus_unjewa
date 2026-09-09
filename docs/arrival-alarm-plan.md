@@ -146,7 +146,7 @@
 1. 기획 문서 (이 파일) ✅
 2. UI: 버튼·토스트·공통 권한 다이얼로그 위젯. 뷰모델은 켜짐/꺼짐 bool 만 가진다 → 위젯·뷰모델 테스트 ✅ (브랜치 `feature/arrival-alarm`, 실기기 확인 대기)
 3. 모델·매퍼에 `plateNo1` 추가 → 매퍼 테스트 ✅
-4. `BusTracker` 순수 로직 → 단위 테스트
+4. `BusTracker` 순수 로직 → 단위 테스트 ✅
    (활성화 시 건너뛰기, 보정으로 두 시점 동시 통과, 보정 후 시간 증가, 차량번호 변경, 0 도달, 90분)
 5. `flutter_foreground_task` + `flutter_local_notifications` 추가, 매니페스트, `main.dart` 초기화, 파사드, TaskHandler
    → analyze 0건, 빌드 성공
