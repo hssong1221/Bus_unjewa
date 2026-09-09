@@ -17,6 +17,7 @@ class BusArrivalMapper {
       routeId: entity.routeId,
       stationId: entity.stationId,
       staOrder: entity.staOrder,
+      plateNo1: entity.plateNo1,
     );
   }
 

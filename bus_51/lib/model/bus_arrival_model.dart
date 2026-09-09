@@ -15,6 +15,7 @@ class BusArrivalModel {
   final String routeId;
   final String stationId;
   final String staOrder; // 노선 안에서 이 정류장의 순번 (같은 정류장을 두 번 지나는 노선 구분용)
+  final String plateNo1; // 첫 번째 버스 차량번호. 도착 알림이 계속 같은 차를 보고 있는지(지나갔는지) 판정하는 데 쓴다
 
   const BusArrivalModel({
     required this.predictTime1,
@@ -30,6 +31,7 @@ class BusArrivalModel {
     required this.routeId,
     required this.stationId,
     this.staOrder = '',
+    this.plateNo1 = '',
   });
 
   /// 첫 번째 버스가 실제로 오고 있는지.
@@ -42,7 +44,7 @@ class BusArrivalModel {
 
   @override
   String toString() {
-    return 'BusArrivalModel(predictTime1: $predictTime1, predictTime2: $predictTime2, predictTimeSec1: $predictTimeSec1, predictTimeSec2: $predictTimeSec2, locationNo1: $locationNo1, locationNo2: $locationNo2, stationNm1: $stationNm1, stationNm2: $stationNm2, flag: $flag, routeDestName: $routeDestName, routeId: $routeId, stationId: $stationId, staOrder: $staOrder)';
+    return 'BusArrivalModel(predictTime1: $predictTime1, predictTime2: $predictTime2, predictTimeSec1: $predictTimeSec1, predictTimeSec2: $predictTimeSec2, locationNo1: $locationNo1, locationNo2: $locationNo2, stationNm1: $stationNm1, stationNm2: $stationNm2, flag: $flag, routeDestName: $routeDestName, routeId: $routeId, stationId: $stationId, staOrder: $staOrder, plateNo1: $plateNo1)';
   }
 
   @override
@@ -61,11 +63,12 @@ class BusArrivalModel {
         other.routeDestName == routeDestName &&
         other.routeId == routeId &&
         other.stationId == stationId &&
-        other.staOrder == staOrder;
+        other.staOrder == staOrder &&
+        other.plateNo1 == plateNo1;
   }
 
   @override
   int get hashCode {
-    return Object.hash(predictTime1, predictTime2, predictTimeSec1, predictTimeSec2, locationNo1, locationNo2, stationNm1, stationNm2, flag, routeDestName, routeId, stationId, staOrder);
+    return Object.hash(predictTime1, predictTime2, predictTimeSec1, predictTimeSec2, locationNo1, locationNo2, stationNm1, stationNm2, flag, routeDestName, routeId, stationId, staOrder, plateNo1);
   }
 }
