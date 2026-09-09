@@ -6,6 +6,8 @@ import 'package:bus_51/repository/bus_routestation_repository.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/light_theme.dart';
+import 'package:bus_51/tracking/bus_tracking_service.dart';
+import 'package:bus_51/tracking/bus_tracking_target.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
@@ -13,6 +15,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import '../tracking/fake_bus_tracking_service.dart';
 
 /// 항상 같은 도착 정보를 돌려준다. 첫 번째 버스의 남은 초만 바꿔 가며 쓴다
 class StubBusArrivalRepository implements BusArrivalRepository {
@@ -53,7 +57,11 @@ class EmptyBusRouteStationRepository implements BusRouteStationRepository {
 }
 
 void main() {
+  late FakeBusTrackingService tracking;
+
   setUp(() async {
+    tracking = FakeBusTrackingService();
+    GetIt.I.registerSingleton<BusTrackingService>(tracking);
     SharedPreferencesAsyncPlatform.instance = InMemorySharedPreferencesAsync.empty();
     final prefs = await SharedPreferencesWithCache.create(
       cacheOptions: const SharedPreferencesWithCacheOptions(),
@@ -152,5 +160,75 @@ void main() {
 
     expect(find.text('도착 알림'), findsOneWidget);
     expect(find.textContaining('알려드려요'), findsNothing);
+    expect(tracking.started, isEmpty);
+  });
+
+  testWidgets('알림을 받을 수 없으면 공통 권한 다이얼로그가 뜨고 버튼은 켜지지 않는다. "설정 열기"는 알림 설정으로 간다', (tester) async {
+    tracking.notificationsAllowed = false;
+    await pumpMain(tester, sec1: '600');
+
+    await tester.tap(find.text('도착 알림'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('알림 권한이 필요해요'), findsOneWidget);
+    expect(find.textContaining('"버스 언제와" 알림을 켜주세요'), findsOneWidget);
+    expect(find.text('알림 켜짐'), findsNothing);
+    expect(tracking.started, isEmpty);
+
+    await tester.tap(find.text('설정 열기'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(tracking.openSettingsCount, 1);
+    expect(find.text('도착 알림'), findsOneWidget);
+  });
+
+  testWidgets('권한 다이얼로그에서 "나중에"를 누르면 설정을 열지 않고 꺼진 채로 남는다', (tester) async {
+    tracking.notificationsAllowed = false;
+    await pumpMain(tester, sec1: '600');
+
+    await tester.tap(find.text('도착 알림'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.tap(find.text('나중에'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(tracking.openSettingsCount, 0);
+    expect(find.text('도착 알림'), findsOneWidget);
+  });
+
+  testWidgets('서비스가 스스로 끝나면 버튼이 꺼진 모양으로 돌아온다', (tester) async {
+    await pumpMain(tester, sec1: '600');
+    await tester.tap(find.text('도착 알림'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text('알림 켜짐'), findsOneWidget);
+
+    tracking.finish();
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('도착 알림'), findsOneWidget);
+    expect(find.text('알림 켜짐'), findsNothing);
+  });
+
+  testWidgets('화면에 들어올 때 이 버스를 추적 중이면 켜진 모양으로 시작한다', (tester) async {
+    tracking.running = const BusTrackingTarget(
+      stationId: 1,
+      routeId: 1,
+      staOrder: 3,
+      routeName: '51',
+      plateNo: '경기71바1146',
+      remainingSeconds: 500,
+    );
+    await pumpMain(tester, sec1: '600');
+    await tester.pump();
+
+    expect(find.text('알림 켜짐'), findsOneWidget);
+    expect(find.byIcon(Icons.notifications_active), findsOneWidget);
   });
 }

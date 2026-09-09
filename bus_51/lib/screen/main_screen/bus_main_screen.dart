@@ -8,10 +8,12 @@ import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
+import 'package:bus_51/tracking/bus_tracking_service.dart';
 import 'package:bus_51/utils/arrival_time.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
 import 'package:bus_51/widget/app_card.dart';
+import 'package:bus_51/widget/app_permission_dialog.dart';
 import 'package:bus_51/widget/app_snack_bar.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
@@ -37,6 +39,7 @@ class BusMainScreen extends StatelessWidget {
       create: (_) => BusMainViewModel(
         GetIt.I<BusArrivalRepository>(),
         GetIt.I<BusRouteStationRepository>(),
+        GetIt.I<BusTrackingService>(),
         savedBuses: GetIt.I<StorageService>().loadUserModelList(),
         index: userDataIdx,
       )..init(),
@@ -594,10 +597,29 @@ class _BusMainViewState extends State<BusMainView> {
     );
   }
 
-  /// 설명은 화면에 남기지 않고 누른 순간 토스트로만 보여준다
-  void _toggleAlarm() {
-    final enabled = context.read<BusMainViewModel>().toggleAlarm();
-    showAppSnackBar(context, enabled ? '도착 10·5·3·1분 전에 알려드려요' : '도착 알림을 껐어요');
+  /// 설명은 화면에 남기지 않고 누른 순간 토스트로만 보여준다.
+  /// 알림을 받을 수 없으면 공통 권한 다이얼로그 → "설정 열기"면 이 앱의 알림 설정 화면
+  Future<void> _toggleAlarm() async {
+    final vm = context.read<BusMainViewModel>();
+    final result = await vm.toggleAlarm();
+    if (!mounted) return;
+
+    switch (result) {
+      case AlarmToggleResult.enabled:
+        showAppSnackBar(context, '도착 10·5·3·1분 전에 알려드려요');
+      case AlarmToggleResult.disabled:
+        showAppSnackBar(context, '도착 알림을 껐어요');
+      case AlarmToggleResult.needsPermission:
+        final openSettings = await AppPermissionDialog.show(
+          context,
+          icon: Icons.notifications_none,
+          title: '알림 권한이 필요해요',
+          message: '알림을 허용해야 버스가 오기 전에 알려드릴 수 있어요. 설정에서 "버스 언제와" 알림을 켜주세요.',
+        );
+        if (openSettings) await vm.openNotificationSettings();
+      case AlarmToggleResult.failed:
+        showAppSnackBar(context, '도착 알림을 켜지 못했어요', isError: true);
+    }
   }
 
   Widget _buildExpandedTimelineView(ColorScheme colorScheme, BusArrivalModel item, BusMainViewModel vm, Color busColor) {

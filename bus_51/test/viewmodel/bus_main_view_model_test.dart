@@ -5,10 +5,14 @@ import 'package:bus_51/model/bus_routestation_model.dart';
 import 'package:bus_51/model/user_save_model.dart';
 import 'package:bus_51/repository/bus_arrival_repository.dart';
 import 'package:bus_51/repository/bus_routestation_repository.dart';
+import 'package:bus_51/tracking/bus_tracking_service.dart';
+import 'package:bus_51/tracking/bus_tracking_target.dart';
 import 'package:bus_51/utils/api_exception.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../tracking/fake_bus_tracking_service.dart';
 
 class FakeBusArrivalRepository implements BusArrivalRepository {
   FakeBusArrivalRepository({this.arrival, this.exception});
@@ -85,17 +89,19 @@ List<BusRouteStationModel> makeRouteStations(int count) =>
 BusMainViewModel makeViewModel(
   BusArrivalRepository arrivalRepository, {
   BusRouteStationRepository? routeStationRepository,
+  BusTrackingService? tracking,
   List<UserSaveModel>? savedBuses,
   int index = 0,
 }) =>
     BusMainViewModel(
       arrivalRepository,
       routeStationRepository ?? FakeBusRouteStationRepository(),
+      tracking ?? FakeBusTrackingService(),
       savedBuses: savedBuses ?? [makeUser()],
       index: index,
     );
 
-BusArrivalModel makeArrival({String sec1 = '120', String sec2 = '300'}) => BusArrivalModel(
+BusArrivalModel makeArrival({String sec1 = '120', String sec2 = '300', String plateNo1 = ''}) => BusArrivalModel(
       predictTime1: '2',
       predictTime2: '5',
       predictTimeSec1: sec1,
@@ -108,7 +114,18 @@ BusArrivalModel makeArrival({String sec1 = '120', String sec2 = '300'}) => BusAr
       routeDestName: '종점',
       routeId: '208000017',
       stationId: '226000060',
+      plateNo1: plateNo1,
     );
+
+/// makeUser() 의 버스를 추적 중인 상태
+const BusTrackingTarget trackingThisBus = BusTrackingTarget(
+  stationId: 226000060,
+  routeId: 208000017,
+  staOrder: 3,
+  routeName: '51',
+  plateNo: '경기71바1146',
+  remainingSeconds: 600,
+);
 
 void main() {
   group('BusMainViewModel', () {
@@ -367,50 +384,138 @@ void main() {
     });
   });
 
-  // UI 단계: 켜짐/꺼짐 상태만 검증한다. 실제 알림 서비스는 아직 연결하지 않았다
   group('도착 알림', () {
-    test('처음엔 꺼져 있고, 켜고 끌 때마다 리스너에게 알린다', () async {
-      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')));
+    late FakeBusTrackingService tracking;
+
+    setUp(() => tracking = FakeBusTrackingService());
+
+    test('켜면 권한을 확인한 뒤 지금 보는 버스·차량번호·남은 초로 추적을 시작하고 리스너에게 알린다', () async {
+      final vm = makeViewModel(
+        FakeBusArrivalRepository(arrival: makeArrival(sec1: '600', plateNo1: '경기71바1146')),
+        tracking: tracking,
+      );
       await vm.init();
       var notified = 0;
       vm.addListener(() => notified++);
 
       expect(vm.alarmEnabled, isFalse);
-      expect(vm.toggleAlarm(), isTrue);
+      expect(await vm.toggleAlarm(), AlarmToggleResult.enabled);
+
       expect(vm.alarmEnabled, isTrue);
-      expect(vm.toggleAlarm(), isFalse);
+      expect(notified, 1);
+      expect(tracking.started, [trackingThisBus]);
+      vm.dispose();
+    });
+
+    test('끄면 추적을 중지한다', () async {
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
+      await vm.init();
+      await vm.toggleAlarm();
+
+      expect(await vm.toggleAlarm(), AlarmToggleResult.disabled);
+
       expect(vm.alarmEnabled, isFalse);
-      expect(notified, 2);
+      expect(tracking.stopCount, 1);
+      vm.dispose();
+    });
+
+    test('알림을 받을 수 없으면 needsPermission 이고 추적을 시작하지 않는다', () async {
+      tracking.notificationsAllowed = false;
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
+      await vm.init();
+
+      expect(await vm.toggleAlarm(), AlarmToggleResult.needsPermission);
+
+      expect(vm.alarmEnabled, isFalse);
+      expect(tracking.started, isEmpty);
+      vm.dispose();
+    });
+
+    test('서비스가 뜨지 못하면 failed 이고 꺼진 채로 남는다', () async {
+      tracking.startSucceeds = false;
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
+      await vm.init();
+
+      expect(await vm.toggleAlarm(), AlarmToggleResult.failed);
+
+      expect(vm.alarmEnabled, isFalse);
       vm.dispose();
     });
 
     test('남은 시간이 1분 미만이면 켤 수 없다', () async {
-      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '59')));
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '59')), tracking: tracking);
       await vm.init();
       var notified = 0;
       vm.addListener(() => notified++);
 
       expect(vm.canToggleAlarm, isFalse);
-      expect(vm.toggleAlarm(), isFalse);
+      expect(await vm.toggleAlarm(), AlarmToggleResult.failed);
       expect(vm.alarmEnabled, isFalse);
+      expect(tracking.started, isEmpty);
       expect(notified, 0);
       vm.dispose();
     });
 
     test('켜져 있으면 1분 미만이 되어도 끌 수는 있다', () {
       fakeAsync((async) {
-        final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '61')));
+        final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '61')), tracking: tracking);
         vm.init();
         async.flushMicrotasks();
-        expect(vm.toggleAlarm(), isTrue);
+        vm.toggleAlarm();
+        async.flushMicrotasks();
+        expect(vm.alarmEnabled, isTrue);
 
         async.elapse(const Duration(seconds: 5));
         expect(vm.remainingSeconds1, 56);
         expect(vm.canToggleAlarm, isTrue);
-        expect(vm.toggleAlarm(), isFalse);
+        vm.toggleAlarm();
+        async.flushMicrotasks();
+        expect(vm.alarmEnabled, isFalse);
         expect(vm.canToggleAlarm, isFalse);
         vm.dispose();
       });
+    });
+
+    test('화면에 들어올 때 이 버스를 추적 중이면 켜진 상태로 시작한다', () async {
+      tracking.running = trackingThisBus;
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival()), tracking: tracking);
+
+      await vm.init();
+
+      expect(vm.alarmEnabled, isTrue);
+      vm.dispose();
+    });
+
+    test('다른 버스를 추적 중이면 이 화면에서는 꺼진 상태다', () async {
+      tracking.running = const BusTrackingTarget(
+        stationId: 226000060,
+        routeId: 208000017,
+        staOrder: 9,
+        routeName: '51',
+        plateNo: '경기71바1146',
+        remainingSeconds: 600,
+      );
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival()), tracking: tracking);
+
+      await vm.init();
+
+      expect(vm.alarmEnabled, isFalse);
+      vm.dispose();
+    });
+
+    test('서비스가 스스로 끝나면(도착·차량 변경·알림의 끄기) 꺼진 상태로 바뀌고 리스너에게 알린다', () async {
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
+      await vm.init();
+      await vm.toggleAlarm();
+      var notified = 0;
+      vm.addListener(() => notified++);
+
+      tracking.finish();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(vm.alarmEnabled, isFalse);
+      expect(notified, 1);
+      vm.dispose();
     });
   });
 }

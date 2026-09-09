@@ -1,7 +1,7 @@
 # 도착 알림 기획 (포그라운드 서비스)
 
 작성일: 2026-09-09
-상태: 기획 확정 · UI 작업 중
+상태: 구현 완료 · 실기기 검증 대기
 
 ## 1. 목적
 
@@ -81,7 +81,7 @@
 | 모든 버전 공통 | 알림 채널 두 개(고정 알림 무음 / 알람 소리·진동)는 앱 시작 시 미리 만든다. 사용자가 알람 채널만 꺼둔 경우도 "알림을 받을 수 없음"으로 보고 같은 다이얼로그. Android 14 이상은 서비스 종류 선언이 있어야 서비스가 시작된다 (매니페스트, 사용자 동작 없음) |
 
 - 다이얼로그가 뜨면 버튼은 켜지 않는다. "설정 열기"는 이 앱의 알림 설정 화면으로 이동한다.
-- minSdk 는 Flutter 기본값이라 실제 지원 하한을 구현 시 확인한다.
+- minSdk 는 24(Android 7.0, Flutter 기본값). `flutter_local_notifications` 22 의 하한도 24 라 같다. 7.x 에는 알림 채널이 없어 채널 확인은 자연히 건너뛴다.
 
 쓰지 않는 것:
 
@@ -95,6 +95,9 @@
 - `flutter_foreground_task` 11.0.3 요구사항(Flutter 3.44+, Dart 3.12+, Kotlin 2.2.20+, Gradle 8.11+) 전부 만족
 - 도착 API 엔티티에 `plateNo1`/`plateNo2` 가 들어오지만 매퍼가 모델로 넘기지 않는다 → 모델에 추가 필요
 - 메인 화면은 `AppLifecycleListener` 로 백그라운드 진입·복귀를 이미 처리한다 → 버튼 상태 동기화 지점
+- `flutter_local_notifications` 22 는 desugaring 필수 → `build.gradle` 에 `coreLibraryDesugaring` + Java 17 (디버그 빌드 확인)
+- `app_settings` 는 Kotlin Gradle Plugin 을 직접 적용해 Flutter 가 "향후 빌드 실패" 경고를 낸다 → 쓰지 않고 `MainActivity` 의 MethodChannel(`bus_51/settings`)로 알림 설정 화면을 연다
+- 서비스 isolate 의 FlutterEngine 은 기본 생성자라 다른 플러그인(`flutter_local_notifications`)이 자동 등록된다
 
 ## 6. 구조
 
@@ -104,6 +107,8 @@
 |---|---|---|
 | `model/bus_arrival_model.dart`, `mapper/bus_arrival_mapper.dart` | `plateNo1` 추가 | 매퍼 테스트 확장 |
 | `tracking/bus_tracker.dart` | 순수 로직. 카운트다운, 4회 알람 시점 판정, 종료 판정, 다음 조회 주기, 알림 문구 | 단위 테스트 핵심 |
+| `tracking/bus_tracking_target.dart` | 추적 대상(정류장·노선·순번·차량번호·남은 초). 앱→서비스 전달, 복귀 시 동기화 | 단위 테스트 |
+| `tracking/bus_notifications.dart` | 알림 채널 두 개, 알림 가능 여부 확인(버전별 흐름), 알람 띄우기 | 실기기 |
 | `tracking/bus_tracking_task_handler.dart` | 서비스 isolate 진입점. Dio·API 서비스·Repository 를 직접 생성해 주기마다 조회하고 tracker 에 넘김. 알림 갱신, 자체 종료 | 얇게 유지, 실기기 검증 |
 | `tracking/bus_tracking_service.dart` | UI 쪽 파사드. 권한 확인·시작·중지·실행 여부. GetIt 등록 | 인터페이스로 두고 테스트에서 fake |
 | `viewmodel/bus_main_view_model.dart` | 알림 켜짐 상태와 `toggleAlarm()` | 기존 테스트 파일 확장 |
@@ -149,7 +154,7 @@
 4. `BusTracker` 순수 로직 → 단위 테스트 ✅
    (활성화 시 건너뛰기, 보정으로 두 시점 동시 통과, 보정 후 시간 증가, 차량번호 변경, 0 도달, 90분)
 5. `flutter_foreground_task` + `flutter_local_notifications` 추가, 매니페스트, `main.dart` 초기화, 파사드, TaskHandler
-   → analyze 0건, 빌드 성공
-6. 뷰모델을 파사드에 연결 + fake 파사드 테스트
+   → analyze 0건, 빌드 성공 ✅
+6. 뷰모델을 파사드에 연결 + fake 파사드 테스트 ✅
 7. 실기기: 앱 종료·잠금 상태에서 알람 4회 타이밍, 0 도달 시 자동 종료,
    `adb shell dumpsys deviceidle force-idle` 로 절전 모드 강제 진입 후 지속 여부

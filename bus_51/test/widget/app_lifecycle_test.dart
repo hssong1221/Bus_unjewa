@@ -7,6 +7,7 @@ import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_main_screen.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/light_theme.dart';
+import 'package:bus_51/tracking/bus_tracking_service.dart';
 import 'package:bus_51/viewmodel/bus_list_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +17,8 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart';
 import 'package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart';
+
+import '../tracking/fake_bus_tracking_service.dart';
 
 /// 호출 횟수만 센다 (리스트의 정류장 단위 조회와 상세의 노선 단위 조회 합산). 응답은 항상 10분 뒤 도착
 class CountingBusArrivalRepository implements BusArrivalRepository {
@@ -83,6 +86,7 @@ void main() {
     GetIt.I.registerSingleton<StorageService>(storage);
     GetIt.I.registerSingleton<BusArrivalRepository>(repo);
     GetIt.I.registerSingleton<BusRouteStationRepository>(EmptyBusRouteStationRepository());
+    GetIt.I.registerSingleton<BusTrackingService>(FakeBusTrackingService());
   });
 
   tearDown(() async => GetIt.I.reset());
