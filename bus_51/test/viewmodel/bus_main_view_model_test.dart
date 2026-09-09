@@ -366,4 +366,51 @@ void main() {
       expect(vm.timelineState, isA<BusTimelineLoading>());
     });
   });
+
+  // UI 단계: 켜짐/꺼짐 상태만 검증한다. 실제 알림 서비스는 아직 연결하지 않았다
+  group('도착 알림', () {
+    test('처음엔 꺼져 있고, 켜고 끌 때마다 리스너에게 알린다', () async {
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')));
+      await vm.init();
+      var notified = 0;
+      vm.addListener(() => notified++);
+
+      expect(vm.alarmEnabled, isFalse);
+      expect(vm.toggleAlarm(), isTrue);
+      expect(vm.alarmEnabled, isTrue);
+      expect(vm.toggleAlarm(), isFalse);
+      expect(vm.alarmEnabled, isFalse);
+      expect(notified, 2);
+      vm.dispose();
+    });
+
+    test('남은 시간이 1분 미만이면 켤 수 없다', () async {
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '59')));
+      await vm.init();
+      var notified = 0;
+      vm.addListener(() => notified++);
+
+      expect(vm.canToggleAlarm, isFalse);
+      expect(vm.toggleAlarm(), isFalse);
+      expect(vm.alarmEnabled, isFalse);
+      expect(notified, 0);
+      vm.dispose();
+    });
+
+    test('켜져 있으면 1분 미만이 되어도 끌 수는 있다', () {
+      fakeAsync((async) {
+        final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '61')));
+        vm.init();
+        async.flushMicrotasks();
+        expect(vm.toggleAlarm(), isTrue);
+
+        async.elapse(const Duration(seconds: 5));
+        expect(vm.remainingSeconds1, 56);
+        expect(vm.canToggleAlarm, isTrue);
+        expect(vm.toggleAlarm(), isFalse);
+        expect(vm.canToggleAlarm, isFalse);
+        vm.dispose();
+      });
+    });
+  });
 }

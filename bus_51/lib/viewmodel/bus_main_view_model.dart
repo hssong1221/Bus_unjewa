@@ -187,6 +187,24 @@ class BusMainViewModel extends ChangeNotifier {
     _remainingSeconds2 = 0;
   }
 
+  // ----- 도착 알림 -----
+  // UI 단계: 켜짐/꺼짐 상태만 갖는다. 실제 알림(포그라운드 서비스)은 아직 연결하지 않았다
+
+  bool _alarmEnabled = false;
+  bool get alarmEnabled => _alarmEnabled;
+
+  /// 남은 시간이 1분 미만이면 울릴 시점(10·5·3·1분 전)이 없으므로 켤 수 없다.
+  /// 이미 켜진 알림은 남은 시간과 상관없이 끌 수 있다
+  bool get canToggleAlarm => _alarmEnabled || _remainingSeconds1 >= 60;
+
+  /// 도착 알림을 켜거나 끈다. 바뀐 뒤의 상태를 돌려준다 (화면은 이 값으로 토스트 문구를 고른다)
+  bool toggleAlarm() {
+    if (!canToggleAlarm) return _alarmEnabled;
+    _alarmEnabled = !_alarmEnabled;
+    notifyListeners();
+    return _alarmEnabled;
+  }
+
   // ----- 전체 노선 타임라인 -----
 
   BusTimelineState _timelineState = const BusTimelineLoading();

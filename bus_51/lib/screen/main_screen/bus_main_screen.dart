@@ -12,6 +12,7 @@ import 'package:bus_51/utils/arrival_time.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_main_view_model.dart';
 import 'package:bus_51/widget/app_card.dart';
+import 'package:bus_51/widget/app_snack_bar.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -539,21 +540,64 @@ class _BusMainViewState extends State<BusMainView> {
           ),
         ),
         const SizedBox(height: AppSpacing.md),
+        // 왼쪽 도착 알림, 오른쪽 전체 노선 보기. 두 버튼이 한 줄을 나눠 쓰므로 좌우 여백을 줄인다
         SizedBox(
           height: 52,
-          child: FilledButton.tonalIcon(
-            onPressed: _toggleExpanded,
-            iconAlignment: IconAlignment.end,
-            icon: const Icon(Icons.keyboard_arrow_down, size: 20),
-            label: const Text('전체 노선 보기'),
-            style: FilledButton.styleFrom(
-              backgroundColor: colorScheme.surfaceContainerHigh,
-              foregroundColor: colorScheme.onSurface.withValues(alpha: 0.8),
-            ),
+          child: Row(
+            children: [
+              Expanded(child: _buildAlarmButton(colorScheme, vm)),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: FilledButton.tonalIcon(
+                  onPressed: _toggleExpanded,
+                  iconAlignment: IconAlignment.end,
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 20),
+                  label: const Text('전체 노선 보기', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: colorScheme.surfaceContainerHigh,
+                    foregroundColor: colorScheme.onSurface.withValues(alpha: 0.8),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ],
     );
+  }
+
+  /// 도착 알림 버튼. 꺼짐: tonal + 빈 종, 켜짐: primary 채움 + 울리는 종.
+  /// 남은 시간 1분 미만이면 울릴 알람이 없으므로 비활성화된다
+  Widget _buildAlarmButton(ColorScheme colorScheme, BusMainViewModel vm) {
+    final onPressed = vm.canToggleAlarm ? _toggleAlarm : null;
+
+    if (vm.alarmEnabled) {
+      return FilledButton.icon(
+        onPressed: onPressed,
+        icon: const Icon(Icons.notifications_active, size: 20),
+        label: const Text('알림 켜짐', maxLines: 1, overflow: TextOverflow.ellipsis),
+        style: FilledButton.styleFrom(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+        ),
+      );
+    }
+    return FilledButton.tonalIcon(
+      onPressed: onPressed,
+      icon: const Icon(Icons.notifications_none, size: 20),
+      label: const Text('도착 알림', maxLines: 1, overflow: TextOverflow.ellipsis),
+      style: FilledButton.styleFrom(
+        backgroundColor: colorScheme.surfaceContainerHigh,
+        foregroundColor: colorScheme.onSurface.withValues(alpha: 0.8),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      ),
+    );
+  }
+
+  /// 설명은 화면에 남기지 않고 누른 순간 토스트로만 보여준다
+  void _toggleAlarm() {
+    final enabled = context.read<BusMainViewModel>().toggleAlarm();
+    showAppSnackBar(context, enabled ? '도착 10·5·3·1분 전에 알려드려요' : '도착 알림을 껐어요');
   }
 
   Widget _buildExpandedTimelineView(ColorScheme colorScheme, BusArrivalModel item, BusMainViewModel vm, Color busColor) {
