@@ -16,8 +16,18 @@ const String kArrivalAlarmChannelId = 'bus_arrival_alarm';
 const String kArrivalAlarmChannelName = '도착 알람';
 const String kArrivalAlarmChannelDescription = '버스 도착 10·5·3·1분 전에 울립니다';
 
-/// 알람 알림 id. 항상 같은 id 라 새 알람이 이전 알람을 덮는다 (알림 영역에 한 장만 남는다)
-const int _kArrivalAlarmNotificationId = 51;
+// --------------------------------------------------
+// 알림 id 두 개. 반드시 달라야 한다.
+// flutter_foreground_task 는 serviceId 를 고정 알림의 알림 id 로 그대로 쓴다 (startForeground(serviceId, ...)).
+// 알람이 같은 id 를 쓰면 알람이 고정 알림을 덮어쓰고, 같은 초에 이어지는 고정 알림 갱신이 알람을 다시 덮어
+// 안드로이드가 막 시작한 소리·진동을 끊어 버린다 → "알람이 왔는데 소리도 진동도 없다"
+// --------------------------------------------------
+
+/// 포그라운드 서비스 id = 고정 알림의 알림 id
+const int kTrackingServiceId = 51;
+
+/// 알람 알림 id. 알람끼리는 항상 같은 id 라 새 알람이 이전 알람을 덮는다 (알림 영역에 한 장만 남는다)
+const int kArrivalAlarmNotificationId = 5151;
 
 /// 안드로이드 알림 작은 아이콘. 서비스 isolate 에서도 초기화 없이 쓸 수 있게 알람마다 직접 준다
 const String _kNotificationIcon = '@mipmap/ic_launcher';
@@ -37,7 +47,10 @@ Future<void> initBusNotifications() async {
       kArrivalAlarmChannelId,
       kArrivalAlarmChannelName,
       description: kArrivalAlarmChannelDescription,
+      // 기기 기본 알림음 + 기본 진동, 헤드업으로 뜬다. 채널 설정은 한 번 만들어지면 앱이 바꿀 수 없다
       importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
     ),
   );
 }
@@ -69,7 +82,7 @@ Future<bool> ensureArrivalAlarmAllowed() async {
 /// 알람 한 번 (서비스 isolate 에서 부른다). 제목 한 줄만 쓴다: "51번 버스가 5분 후에 도착해요"
 Future<void> showArrivalAlarm(String title) {
   return _plugin.show(
-    id: _kArrivalAlarmNotificationId,
+    id: kArrivalAlarmNotificationId,
     title: title,
     body: null,
     notificationDetails: const NotificationDetails(

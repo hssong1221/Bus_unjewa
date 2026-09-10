@@ -503,6 +503,32 @@ void main() {
       vm.dispose();
     });
 
+    test('다른 버스를 추적 중일 때 켜면 stop 없이 start 만 불러 그 버스로 교체한다 (교체는 파사드의 일)', () async {
+      const otherBus = BusTrackingTarget(
+        stationId: 226000060,
+        routeId: 208000017,
+        staOrder: 9,
+        routeName: '51',
+        plateNo: '경기71바1146',
+        remainingSeconds: 600,
+      );
+      tracking.running = otherBus;
+      final vm = makeViewModel(
+        FakeBusArrivalRepository(arrival: makeArrival(sec1: '600', plateNo1: '경기71바1146')),
+        tracking: tracking,
+      );
+      await vm.init();
+      expect(vm.alarmEnabled, isFalse);
+
+      expect(await vm.toggleAlarm(), AlarmToggleResult.enabled);
+
+      expect(vm.alarmEnabled, isTrue);
+      expect(tracking.stopCount, 0);
+      expect(tracking.started, [trackingThisBus]);
+      expect(tracking.running, trackingThisBus);
+      vm.dispose();
+    });
+
     test('서비스가 스스로 끝나면(도착·차량 변경·알림의 끄기) 꺼진 상태로 바뀌고 리스너에게 알린다', () async {
       final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
       await vm.init();

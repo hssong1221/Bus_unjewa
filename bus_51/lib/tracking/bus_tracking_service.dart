@@ -19,8 +19,8 @@ abstract class BusTrackingService {
   /// 이 앱의 알림 설정 화면을 연다 (권한 다이얼로그의 "설정 열기")
   Future<void> openNotificationSettings();
 
-  /// 추적 시작. 이미 다른 버스를 추적 중이면 그것을 끄고 새로 시작한다 (동시 추적 1건).
-  /// 서비스가 뜨지 못하면 false
+  /// 추적 시작. 이미 다른 버스를 추적 중이면 그 서비스의 추적 대상만 이 버스로 갈아끼운다 (동시 추적 1건).
+  /// 교체는 여기서 처리하므로 뷰모델은 stop() 을 먼저 부르지 않는다. 서비스가 뜨지 못하면 false
   Future<bool> start(BusTrackingTarget target);
 
   /// 추적 중지 (앱의 버튼으로 끌 때)
@@ -87,10 +87,17 @@ class FlutterForegroundBusTrackingService implements BusTrackingService {
 
   @override
   Future<bool> start(BusTrackingTarget target) async {
+    final json = target.encode();
+    await FlutterForegroundTask.saveData(key: BusTrackingTarget.storageKey, value: json);
+
+    // 이미 돌고 있으면 서비스를 내리고 다시 올리지 않는다. 돌고 있는 서비스에 새 대상 문자열을 보내 갈아끼운다
+    // (TaskHandler.onReceiveData). stopService() 는 서비스 플래그가 내려가면 바로 돌아오지만 이전 isolate 의
+    // onDestroy 는 그 뒤에 늦게 실행된다. 그래서 stop → saveData → startService 로 하면 늦은 onDestroy 가
+    // 방금 저장한 새 대상을 지우고 "끝났다" 메시지까지 보내, 새 서비스는 대상을 못 찾아 바로 내려가고 버튼은 꺼진다
     if (await FlutterForegroundTask.isRunningService) {
-      await FlutterForegroundTask.stopService();
+      FlutterForegroundTask.sendDataToTask(json);
+      return true;
     }
-    await FlutterForegroundTask.saveData(key: BusTrackingTarget.storageKey, value: target.encode());
 
     final firstTitle = BusTracker(
       routeName: target.routeName,
@@ -99,7 +106,8 @@ class FlutterForegroundBusTrackingService implements BusTrackingService {
     ).ongoingTitle;
 
     final result = await FlutterForegroundTask.startService(
-      serviceId: 51,
+      // 고정 알림의 알림 id 로도 쓰인다. 알람 알림 id 와 겹치면 안 된다 (bus_notifications.dart)
+      serviceId: kTrackingServiceId,
       serviceTypes: [ForegroundServiceTypes.dataSync],
       notificationTitle: firstTitle,
       notificationText: '',
