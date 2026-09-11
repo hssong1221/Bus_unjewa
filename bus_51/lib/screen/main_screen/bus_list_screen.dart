@@ -722,28 +722,33 @@ class _BusListViewState extends State<BusListView> {
             children: [
               Text('선택한 ${selectedRoutes.length}개의 노선을 삭제하시겠습니까?'),
               const SizedBox(height: AppSpacing.md),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(AppSpacing.md),
-                decoration: BoxDecoration(
-                  color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                  borderRadius: BorderRadius.circular(AppRadius.inner),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: selectedRoutes
-                      .map(
-                        (routeName) => Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 2),
-                          child: Text(
-                            '• $routeName',
-                            style: context.textStyle.bodyMedium.copyWith(
-                              color: colorScheme.onSurface.withValues(alpha: 0.7),
+              // 노선이 많으면 이 목록만 스크롤한다 (질문·안내·버튼은 그대로 보이게)
+              Flexible(
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(AppRadius.inner),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: selectedRoutes
+                          .map(
+                            (routeName) => Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 2),
+                              child: Text(
+                                '• $routeName',
+                                style: context.textStyle.bodyMedium.copyWith(
+                                  color: colorScheme.onSurface.withValues(alpha: 0.7),
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
-                      )
-                      .toList(),
+                          )
+                          .toList(),
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
