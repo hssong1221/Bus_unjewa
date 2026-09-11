@@ -46,6 +46,9 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
   // 타임라인 박스 높이 (4줄 정도 보이고 나머지는 스크롤)
   static const double _timelineHeight = 176;
 
+  // 노선이 이보다 많으면 점을 숨기고 "1 / N" 숫자만 (점이 많으면 화면 가로를 넘고 셀 수도 없다)
+  static const int _maxDots = 10;
+
   late final PageController _pageController;
   int _curPage = 0;
 
@@ -127,23 +130,24 @@ class _FavoriteSettingBodyState extends State<_FavoriteSettingBody> {
     );
   }
 
-  // 점 인디케이터 + "1 / N"
+  // 점 인디케이터 + "1 / N". 노선이 [_maxDots] 개를 넘으면 숫자만
   Widget _buildPageIndicator(ColorScheme colorScheme, int count) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 10),
       child: Row(
         children: [
-          for (var i = 0; i < count; i++)
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.only(right: 6),
-              width: i == _curPage ? 18 : 6,
-              height: 6,
-              decoration: BoxDecoration(
-                color: i == _curPage ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.18),
-                borderRadius: BorderRadius.circular(AppRadius.pill),
+          if (count <= _maxDots)
+            for (var i = 0; i < count; i++)
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                margin: const EdgeInsets.only(right: 6),
+                width: i == _curPage ? 18 : 6,
+                height: 6,
+                decoration: BoxDecoration(
+                  color: i == _curPage ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.18),
+                  borderRadius: BorderRadius.circular(AppRadius.pill),
+                ),
               ),
-            ),
           const Spacer(),
           Text(
             '${_curPage + 1} / $count',

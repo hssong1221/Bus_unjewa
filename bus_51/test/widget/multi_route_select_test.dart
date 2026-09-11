@@ -174,4 +174,42 @@ void main() {
 
     expect(storage.loadUserModelList().map((m) => m.routeName), ['7770', '5000', '900']);
   });
+
+  /// 노선 [count] 개를 골라 확인 단계로 들어간다 (휴대폰 세로 360 x 780)
+  Future<void> pumpConfirm(WidgetTester tester, int count) async {
+    tester.view.physicalSize = const Size(1080, 2340);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.reset);
+
+    final provider = InitProvider(startIdx: InitProvider.stationStepIdx)..setSelectedStationModel(station);
+    for (var i = 1; i <= count; i++) {
+      provider.toggleSelectedRoute(makeRoute('R$i', '$i'));
+    }
+    await tester.pumpWidget(wrap(provider, const FavoriteSettingView()));
+    await tester.pumpAndSettle();
+  }
+
+  // 확인 화면의 AnimatedContainer 는 인디케이터 점뿐이다
+  final dots = find.byType(AnimatedContainer);
+
+  testWidgets('노선 확인: 10개까지는 점 인디케이터와 숫자를 함께 보여준다', (tester) async {
+    await pumpConfirm(tester, 10);
+
+    expect(dots, findsNWidgets(10));
+    expect(find.text('1 / 10'), findsOneWidget);
+  });
+
+  testWidgets('노선 확인: 11개부터는 점을 숨기고 숫자만 보여준다', (tester) async {
+    await pumpConfirm(tester, 11);
+
+    expect(dots, findsNothing);
+    expect(find.text('1 / 11'), findsOneWidget);
+  });
+
+  testWidgets('노선 확인: 노선을 많이 골라도 인디케이터가 화면 가로를 넘지 않는다', (tester) async {
+    await pumpConfirm(tester, 30);
+
+    expect(dots, findsNothing);
+    expect(find.text('1 / 30').hitTestable(), findsOneWidget);
+  });
 }
