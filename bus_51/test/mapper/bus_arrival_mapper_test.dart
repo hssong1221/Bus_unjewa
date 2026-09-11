@@ -42,6 +42,14 @@ void main() {
       expect(model.hasBus1, isFalse);
     });
 
+    test('첫 번째 버스 차량번호(plateNo1)가 모델까지 전달된다 (도착 알림이 같은 차인지 판정하는 데 쓴다)', () {
+      final running = BusArrivalMapper.fromEntity(BusArrivalEntity.fromJson(runningItemJson));
+      final idle = BusArrivalMapper.fromEntity(BusArrivalEntity.fromJson(idleItemJson));
+
+      expect(running.plateNo1, '경기71바1146');
+      expect(idle.plateNo1, '');
+    });
+
     test('목록 응답에만 있는 stateCd 같은 모르는 필드는 무시된다', () {
       expect(() => BusArrivalEntity.fromJson(runningItemJson), returnsNormally);
     });

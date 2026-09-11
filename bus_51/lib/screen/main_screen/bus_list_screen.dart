@@ -9,6 +9,7 @@ import 'package:bus_51/utils/arrival_time.dart';
 import 'package:bus_51/utils/bus_color.dart';
 import 'package:bus_51/viewmodel/bus_list_view_model.dart';
 import 'package:bus_51/widget/app_card.dart';
+import 'package:bus_51/widget/app_snack_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get_it/get_it.dart';
@@ -119,20 +120,7 @@ class _BusListViewState extends State<BusListView> {
 
   void _showSnackBar(String message, {bool isError = false}) {
     if (!mounted) return;
-    final colorScheme = Theme.of(context).colorScheme;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        margin: const EdgeInsets.all(AppSpacing.lg),
-        backgroundColor: isError ? colorScheme.error : null,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppRadius.inner),
-        ),
-      ),
-    );
+    showAppSnackBar(context, message, isError: isError);
   }
 
   @override
