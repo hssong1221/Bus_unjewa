@@ -35,6 +35,11 @@ void setUp(SharedPreferencesWithCache prefs) {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  /// 릴리즈에서는 debugPrint를 빈 함수로 바꿔 코드 곳곳의 로그를 한 번에 끈다 (디버그에서는 그대로 찍힘)
+  if (kReleaseMode) {
+    debugPrint = (String? message, {int? wrapWidth}) {};
+  }
+
   /// 도착 알림 서비스(별도 isolate)가 "끝났다"고 보내는 메시지를 받을 포트. 앱이 뜰 때 한 번 열어 둔다
   FlutterForegroundTask.initCommunicationPort();
 
