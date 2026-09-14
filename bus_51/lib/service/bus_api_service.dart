@@ -73,11 +73,7 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
-      }
+      throw ApiException.fromDio(e);
     }
   }
 
@@ -115,11 +111,7 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
-      }
+      throw ApiException.fromDio(e);
     }
   }
 
@@ -157,11 +149,7 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
-      }
+      throw ApiException.fromDio(e);
     }
   }
 
@@ -215,11 +203,7 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
-      }
+      throw ApiException.fromDio(e);
     }
   }
 
@@ -261,11 +245,7 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
-      }
+      throw ApiException.fromDio(e);
     }
   }
 
@@ -289,11 +269,7 @@ class BusApiService {
         throw ApiException(error: response.data["error"], message: response.data["message"], statusCode: response.statusCode);
       }
     } on DioException catch (e) {
-      if (e.response != null) {
-        throw ApiException(error: e.response?.statusMessage ?? 'Unknown error', message: e.response!.data["message"], statusCode: e.response!.statusCode);
-      } else {
-        throw ApiException(error: e.message);
-      }
+      throw ApiException.fromDio(e);
     }
   }
 
