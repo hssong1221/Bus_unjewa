@@ -91,6 +91,9 @@ enum AlarmToggleResult {
 
   /// 서비스가 뜨지 못했거나 켤 수 있는 상태가 아니다
   failed,
+
+  /// 켜기·끄기가 아직 진행 중이라 이번 누름은 무시했다 (화면은 아무것도 하지 않는다)
+  ignored,
 }
 
 // --------------------------------------------------
@@ -217,39 +220,54 @@ class BusMainViewModel extends ChangeNotifier {
 
   StreamSubscription<void>? _trackingFinished;
 
+  /// 켜기·끄기가 진행 중인가 (권한 확인·서비스 시작은 몇 초 걸릴 수 있다)
+  bool _alarmToggling = false;
+  bool get alarmToggling => _alarmToggling;
+
   /// 남은 시간이 1분 미만이면 울릴 시점(10·5·3·1분 전)이 없으므로 켤 수 없다.
-  /// 이미 켜진 알림은 남은 시간과 상관없이 끌 수 있다
-  bool get canToggleAlarm => _alarmEnabled || _remainingSeconds1 >= 60;
+  /// 이미 켜진 알림은 남은 시간과 상관없이 끌 수 있다. 진행 중에는 다시 누를 수 없다
+  bool get canToggleAlarm => !_alarmToggling && (_alarmEnabled || _remainingSeconds1 >= 60);
 
   /// 도착 알림을 켜거나 끈다.
-  /// 켤 때: 알림 권한 확인 → 지금 보는 버스(차량번호·남은 초)로 서비스 시작
+  /// 켤 때: 알림 권한 확인 → 지금 보는 버스(차량번호·남은 초)로 서비스 시작.
+  /// 진행 중에 다시 부르면 무시한다 — 켜기가 두 번 겹치면 두 번째 시작 실패가 첫 번째 서비스의
+  /// 저장값을 지워 "버튼은 켜짐, 서비스는 없음" 상태가 된다
   Future<AlarmToggleResult> toggleAlarm() async {
-    if (_alarmEnabled) {
-      await _tracking.stop();
-      _alarmEnabled = false;
-      notifyListeners();
-      return AlarmToggleResult.disabled;
-    }
+    if (_alarmToggling) return AlarmToggleResult.ignored;
 
     final user = userModel;
     final state = _state;
-    if (user == null || state is! BusMainSuccess || !canToggleAlarm) return AlarmToggleResult.failed;
+    if (!_alarmEnabled && (user == null || state is! BusMainSuccess || !canToggleAlarm)) {
+      return AlarmToggleResult.failed;
+    }
 
-    if (!await _tracking.ensureNotificationsAllowed()) return AlarmToggleResult.needsPermission;
-
-    final started = await _tracking.start(BusTrackingTarget(
-      stationId: user.stationId,
-      routeId: user.routeId,
-      staOrder: user.staOrder,
-      routeName: user.routeName,
-      plateNo: state.arrival.plateNo1,
-      remainingSeconds: _remainingSeconds1,
-    ));
-    if (!started) return AlarmToggleResult.failed;
-
-    _alarmEnabled = true;
+    _alarmToggling = true;
     notifyListeners();
-    return AlarmToggleResult.enabled;
+    try {
+      if (_alarmEnabled) {
+        await _tracking.stop();
+        _alarmEnabled = false;
+        return AlarmToggleResult.disabled;
+      }
+
+      if (!await _tracking.ensureNotificationsAllowed()) return AlarmToggleResult.needsPermission;
+
+      final started = await _tracking.start(BusTrackingTarget(
+        stationId: user!.stationId,
+        routeId: user.routeId,
+        staOrder: user.staOrder,
+        routeName: user.routeName,
+        plateNo: (state as BusMainSuccess).arrival.plateNo1,
+        remainingSeconds: _remainingSeconds1,
+      ));
+      if (!started) return AlarmToggleResult.failed;
+
+      _alarmEnabled = true;
+      return AlarmToggleResult.enabled;
+    } finally {
+      _alarmToggling = false;
+      notifyListeners();
+    }
   }
 
   /// 권한 다이얼로그의 "설정 열기"

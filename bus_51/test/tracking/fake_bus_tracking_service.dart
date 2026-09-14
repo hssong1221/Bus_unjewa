@@ -11,6 +11,9 @@ class FakeBusTrackingService implements BusTrackingService {
   /// start 가 성공하는가
   bool startSucceeds = true;
 
+  /// 설정하면 이 Completer 가 완료될 때까지 start 를 붙잡는다 (켜는 중 상태를 만들 때)
+  Completer<void>? startGate;
+
   /// 지금 추적 중인 대상 (currentTarget 의 답). start 하면 채워지고 stop·finish 하면 비워진다
   BusTrackingTarget? running;
 
@@ -28,6 +31,7 @@ class FakeBusTrackingService implements BusTrackingService {
 
   @override
   Future<bool> start(BusTrackingTarget target) async {
+    if (startGate != null) await startGate!.future;
     if (!startSucceeds) return false;
     started.add(target);
     running = target;

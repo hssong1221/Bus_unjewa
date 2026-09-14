@@ -402,8 +402,42 @@ void main() {
       expect(await vm.toggleAlarm(), AlarmToggleResult.enabled);
 
       expect(vm.alarmEnabled, isTrue);
-      expect(notified, 1);
+      // 진행 중 표시 시작(버튼 비활성) 1회 + 끝(켜짐 반영) 1회
+      expect(notified, 2);
       expect(tracking.started, [trackingThisBus]);
+      vm.dispose();
+    });
+
+    test('켜는 중에 다시 누르면 무시되고 서비스는 한 번만 시작된다', () async {
+      tracking.startGate = Completer<void>();
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
+      await vm.init();
+
+      final first = vm.toggleAlarm();
+      await Future<void>.delayed(Duration.zero);
+      expect(vm.alarmToggling, isTrue);
+      expect(vm.canToggleAlarm, isFalse);
+
+      expect(await vm.toggleAlarm(), AlarmToggleResult.ignored);
+
+      tracking.startGate!.complete();
+      expect(await first, AlarmToggleResult.enabled);
+      expect(vm.alarmEnabled, isTrue);
+      expect(vm.alarmToggling, isFalse);
+      expect(vm.canToggleAlarm, isTrue);
+      expect(tracking.started.length, 1);
+      vm.dispose();
+    });
+
+    test('서비스 시작이 실패해도 진행 중 표시는 풀리고 다시 누를 수 있다', () async {
+      tracking.startSucceeds = false;
+      final vm = makeViewModel(FakeBusArrivalRepository(arrival: makeArrival(sec1: '600')), tracking: tracking);
+      await vm.init();
+
+      expect(await vm.toggleAlarm(), AlarmToggleResult.failed);
+
+      expect(vm.alarmToggling, isFalse);
+      expect(vm.canToggleAlarm, isTrue);
       vm.dispose();
     });
 

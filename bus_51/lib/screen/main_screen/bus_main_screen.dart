@@ -618,6 +618,8 @@ class _BusMainViewState extends State<BusMainView> {
         if (openSettings) await vm.openNotificationSettings();
       case AlarmToggleResult.failed:
         showAppSnackBar(context, '도착 알림을 켜지 못했어요', isError: true);
+      case AlarmToggleResult.ignored:
+        break;
     }
   }
 
