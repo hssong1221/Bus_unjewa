@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:bus_51/model/busstation_model.dart';
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/service/naver_map_service.dart';
 import 'package:bus_51/theme/app_background.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/viewmodel/station_setting_view_model.dart';
 import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_naver_map/flutter_naver_map.dart';
+import 'package:get_it/get_it.dart';
 import 'package:provider/provider.dart';
 
 // --------------------------------------------------
@@ -42,10 +46,60 @@ class _StationSettingViewState extends State<StationSettingView> {
   // 옵션이 바뀌면 네이버맵이 카메라를 다시 잡으므로 위젯이 살아 있는 동안은 바꾸지 않는다
   MapPoint? _cameraTarget;
 
+  /// 지도가 이 시간 안에 준비되지 않으면 실패로 본다 (인증 실패 콜백이 오지 않는 경우 대비)
+  static const mapReadyTimeout = Duration(seconds: 10);
+  Timer? _mapReadyTimer;
+  late final NaverMapService _naverMap = GetIt.I<NaverMapService>();
+
   @override
   void initState() {
     super.initState();
     _cameraTarget = context.read<StationSettingViewModel>().lastSearchCenter;
+    _naverMap.addListener(_onMapAuthChanged);
+    _startMapReadyTimer();
+    // 앱 시작 때 이미 인증에 실패했으면 바로 안내 (build 중 notify 를 피해 다음 프레임에)
+    if (_naverMap.authFailed) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _markMapFailed());
+    }
+  }
+
+  @override
+  void dispose() {
+    _mapReadyTimer?.cancel();
+    _naverMap.removeListener(_onMapAuthChanged);
+    super.dispose();
+  }
+
+  void _startMapReadyTimer() {
+    _mapReadyTimer?.cancel();
+    _mapReadyTimer = Timer(mapReadyTimeout, () {
+      if (mounted && !_isMapReady) _markMapFailed();
+    });
+  }
+
+  void _onMapAuthChanged() {
+    if (_naverMap.authFailed) _markMapFailed();
+  }
+
+  void _markMapFailed() {
+    if (!mounted) return;
+    _mapReadyTimer?.cancel();
+    context.read<StationSettingViewModel>().markMapLoadFailed();
+  }
+
+  /// "다시 시도": SDK 인증을 다시 하고 지도 위젯을 새로 만든다
+  Future<void> _retryMap() async {
+    await _naverMap.init();
+    if (!mounted) return;
+    setState(() {
+      _isMapReady = false;
+      _mapController = null;
+      _renderedStations = const [];
+      _markersById.clear();
+      _highlightedStationId = null;
+    });
+    context.read<StationSettingViewModel>().retryMapLoad();
+    _startMapReadyTimer();
   }
 
   @override
@@ -128,6 +182,8 @@ class _StationSettingViewState extends State<StationSettingView> {
           children: [
             Positioned.fill(
               child: NaverMap(
+                // 재시도마다 Key 가 바뀌어 지도가 새로 만들어진다
+                key: ValueKey('station_map_${vm.mapAttempt}'),
                 options: NaverMapViewOptions(
                   initialCameraPosition: NCameraPosition(
                     target: NLatLng(camera.lat, camera.lng),
@@ -142,7 +198,10 @@ class _StationSettingViewState extends State<StationSettingView> {
                 onMapTapped: (point, latLng) => context.read<StationSettingViewModel>().clearSelection(),
               ),
             ),
-            if (!_isMapReady)
+            // 지도를 못 불러왔으면 재시도 안내가 지도·버튼·칩을 전부 덮는다
+            if (vm.mapLoadFailed)
+              Positioned.fill(child: _buildMapFailedState(colorScheme))
+            else if (!_isMapReady)
               Positioned.fill(
                 child: Container(
                   color: colorScheme.surfaceContainerHighest,
@@ -158,14 +217,15 @@ class _StationSettingViewState extends State<StationSettingView> {
                 ),
               ),
             // 상단 중앙: 이 지역에서 검색 버튼
-            Positioned(
-              top: 12,
-              left: 0,
-              right: 0,
-              child: Center(child: _buildSearchButton(colorScheme, vm)),
-            ),
+            if (!vm.mapLoadFailed)
+              Positioned(
+                top: 12,
+                left: 0,
+                right: 0,
+                child: Center(child: _buildSearchButton(colorScheme, vm)),
+              ),
             // 안내 칩 (검색 실패/빈 결과/기본 위치)
-            if (notice != null)
+            if (!vm.mapLoadFailed && notice != null)
               Positioned(
                 top: 64,
                 left: 0,
@@ -210,6 +270,54 @@ class _StationSettingViewState extends State<StationSettingView> {
         elevation: 2,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      ),
+    );
+  }
+
+  /// 지도 로딩 실패: 안내 문구 + 다시 시도 (지도 영역 전체를 덮는다)
+  Widget _buildMapFailedState(ColorScheme colorScheme) {
+    return Container(
+      color: colorScheme.surfaceContainerHighest,
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.wifi_off_rounded,
+            size: 40,
+            color: colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '지도를 불러오지 못했습니다',
+            style: context.textStyle.subtitle.copyWith(color: colorScheme.onSurface),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '인터넷 연결을 확인한 뒤 다시 시도해 주세요',
+            style: context.textStyle.caption.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: _retryMap,
+            icon: const Icon(Icons.refresh_rounded, size: 18),
+            label: Text(
+              '다시 시도',
+              style: context.textStyle.labelLarge.copyWith(
+                color: colorScheme.onPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            style: FilledButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -303,6 +411,7 @@ class _StationSettingViewState extends State<StationSettingView> {
   }
 
   void _onMapReady(NaverMapController controller) {
+    _mapReadyTimer?.cancel();
     _mapController = controller;
     final vm = context.read<StationSettingViewModel>();
     // 현위치 오버레이 표시 (카메라는 따라가지 않음). 위치 권한이 없으면 생략

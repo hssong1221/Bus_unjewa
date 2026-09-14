@@ -5,6 +5,7 @@ import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/router/router.dart';
 import 'package:bus_51/service/bus_api_service.dart';
 import 'package:bus_51/service/dio_singleton.dart';
+import 'package:bus_51/service/naver_map_service.dart';
 import 'package:bus_51/service/storage_service.dart';
 import 'package:bus_51/theme/light_theme.dart';
 import 'package:bus_51/tracking/bus_notifications.dart';
@@ -14,7 +15,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_foreground_task/flutter_foreground_task.dart';
-import 'package:flutter_naver_map/flutter_naver_map.dart';
 import 'package:get_it/get_it.dart';
 import 'package:pretty_dio_logger/pretty_dio_logger.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +30,8 @@ void setUp(SharedPreferencesWithCache prefs) {
   getIt.registerLazySingleton<BusRouteStationRepository>(() => BusRouteStationRepository(getIt<BusApiService>()));
   // 도착 알림 (포그라운드 서비스 파사드)
   getIt.registerLazySingleton<BusTrackingService>(() => FlutterForegroundBusTrackingService());
+  // 네이버 지도 SDK 초기화·인증 실패 전달
+  getIt.registerLazySingleton<NaverMapService>(() => NaverMapService());
 }
 
 void main() async {
@@ -72,18 +74,8 @@ void main() async {
     ));
   }
 
-  await FlutterNaverMap().init(
-      clientId:"573iatcw1j",
-      onAuthFailed: (ex) =>
-      switch (ex) {
-        NQuotaExceededException(:final message) =>
-            debugPrint("사용량 초과 (message: $message)"),
-        NUnauthorizedClientException() ||
-        NClientUnspecifiedException() ||
-        NAnotherAuthFailedException() =>
-            debugPrint("인증 실패: $ex"),
-      },
-  );
+  /// 네이버 지도 SDK. 인증 실패는 NaverMapService 가 받아 정류장 화면이 재시도 안내를 띄운다
+  await getIt<NaverMapService>().init();
 
   runApp(const MyApp());
 }

@@ -131,5 +131,28 @@ void main() {
       await vm.searchAround((lat: 37.3, lng: 127.0));
       expect(vm.lastSearchCenter, (lat: 37.3, lng: 127.0));
     });
+
+    test('지도 로딩 실패: 실패 표시는 한 번만 알리고, 다시 시도하면 표시가 지워지며 재시도 횟수가 오른다', () {
+      final vm = StationSettingViewModel(FakeBusStationRepository());
+      var notified = 0;
+      vm.addListener(() => notified++);
+      expect(vm.mapLoadFailed, isFalse);
+      expect(vm.mapAttempt, 0);
+
+      vm.markMapLoadFailed();
+      vm.markMapLoadFailed(); // 시간 초과와 인증 실패가 겹쳐 두 번 와도 한 번만 알린다
+      expect(vm.mapLoadFailed, isTrue);
+      expect(notified, 1);
+
+      vm.retryMapLoad();
+      expect(vm.mapLoadFailed, isFalse);
+      expect(vm.mapAttempt, 1);
+      expect(notified, 2);
+
+      // 재시도 뒤 또 실패하면 다시 안내할 수 있다
+      vm.markMapLoadFailed();
+      expect(vm.mapLoadFailed, isTrue);
+      expect(notified, 3);
+    });
   });
 }

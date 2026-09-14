@@ -53,6 +53,27 @@ class StationSettingViewModel extends ChangeNotifier {
   MapPoint? _lastSearchCenter;
   MapPoint? get lastSearchCenter => _lastSearchCenter;
 
+  /// 지도 SDK 를 못 불러왔는가 (인증 실패·오프라인·시간 초과). true 면 화면이 재시도 안내로 지도를 덮는다
+  bool _mapLoadFailed = false;
+  bool get mapLoadFailed => _mapLoadFailed;
+
+  /// 지도 재시도 횟수. 화면이 NaverMap 위젯의 Key 로 써서 값이 바뀌면 지도를 새로 만든다
+  int _mapAttempt = 0;
+  int get mapAttempt => _mapAttempt;
+
+  void markMapLoadFailed() {
+    if (_mapLoadFailed) return;
+    _mapLoadFailed = true;
+    notifyListeners();
+  }
+
+  /// "다시 시도": 실패 표시를 지우고 지도를 새로 만들게 한다
+  void retryMapLoad() {
+    _mapLoadFailed = false;
+    _mapAttempt++;
+    notifyListeners();
+  }
+
   /// 최초 진입: 현위치 확보 후 그 주변을 1회 자동 검색
   Future<void> init() async {
     try {
