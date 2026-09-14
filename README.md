@@ -1,70 +1,45 @@
-**Privacy Policy**
+# 버스 언제와 개인정보 처리방침
 
-This privacy policy applies to the 버스 언제와 app (hereby referred to as "Application") for mobile devices that was created by Song Hyeon Soo (hereby referred to as "Service Provider") as a Free service. This service is intended for use "AS IS".
+「버스 언제와」(이하 "앱")는 송현수(이하 "개발자")가 무료로 제공하는 경기도 버스 도착 알림 앱입니다.
+앱은 회원가입이 없고 개발자가 운영하는 서버도 없습니다. 이 문서는 앱이 실제로 다루는 정보만 적었습니다.
 
-**Information Collection and Use**
+## 1. 앱이 사용하는 정보
 
-The Application collects information when you download and use it. This information may include information such as
+### 위치 정보
+- 주변 정류장을 찾기 위해 기기의 현재 위치(GPS)를 사용합니다.
+- 위치 좌표는 경기도 버스정보 공공 API(공공데이터포털, apis.data.go.kr)에 보내져 주변 정류장을 조회하는 데만 쓰입니다.
+- 앱과 개발자는 위치 정보를 저장하거나 보관하지 않습니다.
+- 위치 권한을 거부해도 기본 위치(수원역)에서 정류장을 고를 수 있습니다.
 
-*   Your device's Internet Protocol address (e.g. IP address)
-*   The pages of the Application that you visit, the time and date of your visit, the time spent on those pages
-*   The time spent on the Application
-*   The operating system you use on your mobile device
+### 지도
+- 정류장 선택 화면은 네이버 지도 SDK를 사용합니다.
+- 지도를 표시하는 동안 지도 데이터 요청이 네이버클라우드에 전송되며, 이 과정에서 처리되는 정보는 네이버클라우드의 개인정보 처리방침을 따릅니다.
 
-The Application does not gather precise information about the location of your mobile device.
+### 즐겨찾기 (정류장·노선)
+- 사용자가 저장한 정류장과 노선은 기기 내부 저장소에만 저장됩니다.
+- 외부로 전송되지 않으며, 앱을 삭제하면 함께 삭제됩니다.
 
-The Application collects your device's location, which helps the Service Provider determine your approximate geographical location and make use of in below ways:
+### 알림
+- 도착 알림 기능은 알림 권한을 사용하며 기기 안에서만 동작합니다.
+- 알림을 위해 외부로 전송되는 정보는 없습니다.
 
-*   Geolocation Services: The Service Provider utilizes location data to provide features such as personalized content, relevant recommendations, and location-based services.
-*   Analytics and Improvements: Aggregated and anonymized location data helps the Service Provider to analyze user behavior, identify trends, and improve the overall performance and functionality of the Application.
-*   Third-Party Services: Periodically, the Service Provider may transmit anonymized location data to external services. These services assist them in enhancing the Application and optimizing their offerings.
+## 2. 앱이 수집하지 않는 정보
+- 이름, 이메일, 전화번호, 계정 정보
+- 광고 ID
+- 사용 통계·분석 도구, 광고 SDK
 
-The Service Provider may use the information you provided to contact you from time to time to provide you with important information, required notices and marketing promotions.
+## 3. 제3자 제공
+- 위에 적은 공공데이터포털(정류장·도착 정보 조회)과 네이버클라우드(지도 표시) 외에 정보를 제공하는 곳은 없습니다.
+- 개발자는 사용자 정보를 판매하거나 마케팅에 쓰지 않습니다.
 
-For a better experience, while using the Application, the Service Provider may require you to provide us with certain personally identifiable information. The information that the Service Provider request will be retained by them and used as described in this privacy policy.
+## 4. 아동
+- 앱은 만 14세 미만 아동의 개인정보를 의도적으로 수집하지 않습니다.
 
-**Third Party Access**
+## 5. 정보 삭제와 문의
+- 앱이 기기에 저장하는 정보는 앱을 삭제하면 모두 지워집니다.
+- 문의: hssong971221@gmail.com
 
-Only aggregated, anonymized data is periodically transmitted to external services to aid the Service Provider in improving the Application and their service. The Service Provider may share your information with third parties in the ways that are described in this privacy statement.
+## 6. 변경
+- 이 방침이 바뀌면 이 페이지를 갱신합니다.
 
-The Service Provider may disclose User Provided and Automatically Collected Information:
-
-*   as required by law, such as to comply with a subpoena, or similar legal process;
-*   when they believe in good faith that disclosure is necessary to protect their rights, protect your safety or the safety of others, investigate fraud, or respond to a government request;
-*   with their trusted services providers who work on their behalf, do not have an independent use of the information we disclose to them, and have agreed to adhere to the rules set forth in this privacy statement.
-
-**Opt-Out Rights**
-
-You can stop all collection of information by the Application easily by uninstalling it. You may use the standard uninstall processes as may be available as part of your mobile device or via the mobile application marketplace or network.
-
-**Data Retention Policy**
-
-The Service Provider will retain User Provided data for as long as you use the Application and for a reasonable time thereafter. If you'd like them to delete User Provided Data that you have provided via the Application, please contact them at hssong971221@gmail.com and they will respond in a reasonable time.
-
-**Children**
-
-The Service Provider does not use the Application to knowingly solicit data from or market to children under the age of 13.
-
-The Service Provider does not knowingly collect personally identifiable information from children. The Service Provider encourages all children to never submit any personally identifiable information through the Application and/or Services. The Service Provider encourage parents and legal guardians to monitor their children's Internet usage and to help enforce this Policy by instructing their children never to provide personally identifiable information through the Application and/or Services without their permission. If you have reason to believe that a child has provided personally identifiable information to the Service Provider through the Application and/or Services, please contact the Service Provider (hssong971221@gmail.com) so that they will be able to take the necessary actions. You must also be at least 16 years of age to consent to the processing of your personally identifiable information in your country (in some countries we may allow your parent or guardian to do so on your behalf).
-
-**Security**
-
-The Service Provider is concerned about safeguarding the confidentiality of your information. The Service Provider provides physical, electronic, and procedural safeguards to protect information the Service Provider processes and maintains.
-
-**Changes**
-
-This Privacy Policy may be updated from time to time for any reason. The Service Provider will notify you of any changes to the Privacy Policy by updating this page with the new Privacy Policy. You are advised to consult this Privacy Policy regularly for any changes, as continued use is deemed approval of all changes.
-
-This privacy policy is effective as of 2025-09-13
-
-**Your Consent**
-
-By using the Application, you are consenting to the processing of your information as set forth in this Privacy Policy now and as amended by us.
-
-**Contact Us**
-
-If you have any questions regarding privacy while using the Application, or have questions about the practices, please contact the Service Provider via email at hssong971221@gmail.com.
-
-* * *
-
-This privacy policy page was generated by [App Privacy Policy Generator](https://app-privacy-policy-generator.nisrulz.com/)
+시행일: 2026-09-14
