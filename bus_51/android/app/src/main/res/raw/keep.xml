@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 릴리즈 리소스 축소(R8)가 Dart 쪽에서 이름으로만 참조하는 알림 아이콘을 지우지 않게 붙잡는다 -->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/ic_stat_bus" />

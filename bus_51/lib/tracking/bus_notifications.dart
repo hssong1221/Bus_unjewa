@@ -29,8 +29,9 @@ const int kTrackingServiceId = 51;
 /// 알람 알림 id. 알람끼리는 항상 같은 id 라 새 알람이 이전 알람을 덮는다 (알림 영역에 한 장만 남는다)
 const int kArrivalAlarmNotificationId = 5151;
 
-/// 안드로이드 알림 작은 아이콘. 서비스 isolate 에서도 초기화 없이 쓸 수 있게 알람마다 직접 준다
-const String _kNotificationIcon = '@mipmap/ic_launcher';
+/// 안드로이드 알림 작은 아이콘 (res/drawable/ic_stat_bus.xml, 단색 버스). 서비스 isolate 에서도 초기화 없이 쓸 수 있게 알람마다 직접 준다.
+/// 고정 알림 쪽은 AndroidManifest 의 TRACKING_ICON meta-data 가 같은 drawable 을 가리킨다
+const String _kNotificationIcon = 'ic_stat_bus';
 
 final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
 

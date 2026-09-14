@@ -54,6 +54,10 @@
             android:name="com.pravera.flutter_foreground_task.service.ForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false" />
+        <!-- 고정 알림(포그라운드 서비스)의 상태바 아이콘. flutter_foreground_task 가 이 meta-data 이름으로 찾는다 -->
+        <meta-data
+            android:name="com.threeCS.bus_51.service.TRACKING_ICON"
+            android:resource="@drawable/ic_stat_bus" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

@@ -111,6 +111,8 @@ class FlutterForegroundBusTrackingService implements BusTrackingService {
       serviceTypes: [ForegroundServiceTypes.dataSync],
       notificationTitle: firstTitle,
       notificationText: '',
+      // 상태바 단색 버스 아이콘. 이름은 AndroidManifest 의 meta-data 와 같아야 한다
+      notificationIcon: const NotificationIcon(metaDataName: 'com.threeCS.bus_51.service.TRACKING_ICON'),
       notificationButtons: const [NotificationButton(id: stopButtonId, text: '끄기')],
       callback: startBusTrackingCallback,
     );
