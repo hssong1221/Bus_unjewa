@@ -100,7 +100,15 @@ class _BusMainViewState extends State<BusMainView> {
     super.dispose();
   }
 
-  void _goBackToList() => context.goNamed(BusListScreen.routeName);
+  /// 리스트에서 push 로 들어왔으면 pop 으로 돌아가야 리스트의 push Future 가 완료돼 갱신이 재개된다.
+  /// go 로 스택을 교체하면 그 Future 가 끝나지 않아 리스트가 멈춘 채 남는다 (favorite_setting_screen 과 같은 규칙)
+  void _goBackToList() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.goNamed(BusListScreen.routeName);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,44 +134,35 @@ class _BusMainViewState extends State<BusMainView> {
   }
 
   Widget _buildMainContent(ColorScheme colorScheme, Color busColor, BusMainViewModel vm, BusArrivalModel item, UserSaveModel userModel) {
-    return PopScope(
-      canPop: true,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) {
-          // BusMainScreen에서 뒤로가기 시 BusListScreen으로 이동
-          context.goNamed(BusListScreen.routeName);
-        }
-      },
-      child: Scaffold(
-        body: Container(
-          height: MediaQuery.of(context).size.height,
-          decoration: appBackgroundDecoration(colorScheme),
-          child: SafeArea(
-            child: RefreshIndicator(
-              onRefresh: () => vm.refresh(),
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _buildTopBar(colorScheme, item),
-                      const SizedBox(height: AppSpacing.sm),
-                      _buildRouteTitle(colorScheme, busColor, userModel),
-                      const SizedBox(height: AppSpacing.xl),
-                      // 진입 애니메이션 없음 — 히어로 ↔ 전체 노선 확장 전환만 유지
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 300),
-                        child: _isExpanded
-                            ? _buildExpandedTimelineView(colorScheme, item, vm, busColor)
-                            : _buildHeroSection(colorScheme, item, vm, busColor),
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      _buildRefreshHint(colorScheme),
-                      const SizedBox(height: 100), // 추가 여백으로 스크롤 여유 공간 확보
-                    ],
-                  ),
+    return Scaffold(
+      body: Container(
+        height: MediaQuery.of(context).size.height,
+        decoration: appBackgroundDecoration(colorScheme),
+        child: SafeArea(
+          child: RefreshIndicator(
+            onRefresh: () => vm.refresh(),
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildTopBar(colorScheme, item),
+                    const SizedBox(height: AppSpacing.sm),
+                    _buildRouteTitle(colorScheme, busColor, userModel),
+                    const SizedBox(height: AppSpacing.xl),
+                    // 진입 애니메이션 없음 — 히어로 ↔ 전체 노선 확장 전환만 유지
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 300),
+                      child: _isExpanded
+                          ? _buildExpandedTimelineView(colorScheme, item, vm, busColor)
+                          : _buildHeroSection(colorScheme, item, vm, busColor),
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                    _buildRefreshHint(colorScheme),
+                    const SizedBox(height: 100), // 추가 여백으로 스크롤 여유 공간 확보
+                  ],
                 ),
               ),
             ),
