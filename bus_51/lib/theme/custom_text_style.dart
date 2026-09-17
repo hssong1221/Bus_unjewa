@@ -20,7 +20,39 @@ class CustomTextStyle extends ThemeExtension<CustomTextStyle> {
   TextStyle get _mediumFont => _defaultFontFamily.copyWith(fontWeight: FontWeight.w500);
   TextStyle get _regularFont => _defaultFontFamily.copyWith(fontWeight: FontWeight.w400);
 
-  /// public getter
+  /// Material 3 Typography Scale
+  // Display styles (large headings)
+  TextStyle get displayLarge => _boldFont.copyWith(fontSize: 32);
+  TextStyle get displayMedium => _boldFont.copyWith(fontSize: 28);
+  TextStyle get displaySmall => _boldFont.copyWith(fontSize: 24);
+
+  // Headline styles (section headers)
+  TextStyle get headlineLarge => _boldFont.copyWith(fontSize: 22);
+  TextStyle get headlineMedium => _boldFont.copyWith(fontSize: 20);
+  TextStyle get headlineSmall => _boldFont.copyWith(fontSize: 18);
+
+  // Title styles (component titles)
+  TextStyle get titleLarge => _boldFont.copyWith(fontSize: 18);
+  TextStyle get titleMedium => _mediumFont.copyWith(fontSize: 16);
+  TextStyle get titleSmall => _mediumFont.copyWith(fontSize: 14);
+
+  // Body styles (main content)
+  TextStyle get bodyLarge => _regularFont.copyWith(fontSize: 16);
+  TextStyle get bodyMedium => _regularFont.copyWith(fontSize: 14);
+  TextStyle get bodySmall => _regularFont.copyWith(fontSize: 12);
+
+  // Label styles (buttons, form labels)
+  TextStyle get labelLarge => _mediumFont.copyWith(fontSize: 16);
+  TextStyle get labelMedium => _mediumFont.copyWith(fontSize: 14);
+  TextStyle get labelSmall => _mediumFont.copyWith(fontSize: 12);
+
+  // Custom app-specific styles
+  TextStyle get appTitle => _boldFont.copyWith(fontSize: 28);
+  TextStyle get buttonText => _mediumFont.copyWith(fontSize: 16, fontWeight: FontWeight.w600);
+  TextStyle get caption => _regularFont.copyWith(fontSize: 12);
+  TextStyle get subtitle => _regularFont.copyWith(fontSize: 15);
+
+  // Legacy styles (기존 호환성)
   TextStyle get titleBoldLg => _boldFont.copyWith(fontSize: 22);
   TextStyle get titleBoldMd => _boldFont.copyWith(fontSize: 20);
   TextStyle get titleBoldSm => _boldFont.copyWith(fontSize: 18);

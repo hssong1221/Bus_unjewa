@@ -1,36 +1,30 @@
-import 'package:get_storage/get_storage.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-class UserSaveModel {
-  UserSaveModel({
-    required this.routeName,
-    required this.stationId,
-    required this.routeId,
-    required this.staOrder,
-    required this.routeTypeCd,
-  });
+part 'user_save_model.freezed.dart';
+part 'user_save_model.g.dart';
 
-  final String routeName;
-  final int stationId;
-  final int routeId;
-  final int staOrder;
-  final int routeTypeCd;
+@freezed
+sealed class UserSaveModel with _$UserSaveModel {
+  const factory UserSaveModel({
+    required String routeName,
+    required int stationId,
+    required int routeId,
+    required int staOrder,
+    required int routeTypeCd,
+    /// 탑승 정류장 이름 (리스트 카드 표기용)
+    required String stationName,
+    /// 노선 종점 이름 — 같은 노선 양방향을 구분하는 기준 (리스트 카드 "→ ○○ 방면")
+    required String routeDestName,
+  }) = _UserSaveModel;
 
+  factory UserSaveModel.fromJson(Map<String, dynamic> json) =>
+      _$UserSaveModelFromJson(json);
 
-  Map<String, dynamic> toMap() => {
-    'routeName': routeName,
-    'stationId': stationId,
-    'routeId': routeId,
-    'staOrder': staOrder,
-    'routeTypeCd': routeTypeCd,
-  };
+  // 기존 toMap/fromMap 호환성을 위한 메서드들
+  factory UserSaveModel.fromMap(Map<String, dynamic> map) =>
+      UserSaveModel.fromJson(map);
+}
 
-  factory UserSaveModel.fromMap(Map<String, dynamic> map) {
-    return UserSaveModel(
-      routeName: map['routeName'],
-      stationId: map['stationId'],
-      routeId: map['routeId'],
-      staOrder: map['staOrder'],
-      routeTypeCd: map['routeTypeCd'],
-    );
-  }
+extension UserSaveModelExtension on UserSaveModel {
+  Map<String, dynamic> toMap() => toJson();
 }

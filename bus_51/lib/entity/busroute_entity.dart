@@ -1,34 +1,29 @@
-class BusRouteEntity {
-  final String regionName;
-  final int routeDestId;
-  final String routeDestName;
-  final int routeId;
-  final String routeName;
-  final int routeTypeCd;
-  final String routeTypeName;
-  final int staOrder;
+import 'package:bus_51/utils/safe_string_converter.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  BusRouteEntity({
-    required this.regionName,
-    required this.routeDestId,
-    required this.routeDestName,
-    required this.routeId,
-    required this.routeName,
-    required this.routeTypeCd,
-    required this.routeTypeName,
-    required this.staOrder,
-  });
+part 'busroute_entity.freezed.dart';
+part 'busroute_entity.g.dart';
 
-  factory BusRouteEntity.fromJson(Map<String, dynamic> json) {
-    return BusRouteEntity(
-      regionName: json['regionName'],
-      routeDestId: json['routeDestId'],
-      routeDestName: json['routeDestName'],
-      routeId: json['routeId'],
-      routeName: json['routeName'].toString(),
-      routeTypeCd: json['routeTypeCd'],
-      routeTypeName: json['routeTypeName'],
-      staOrder: json['staOrder'],
-    );
-  }
+// --------------------------------------------------
+// 버스 노선 Entity
+// --------------------------------------------------
+// NOTE: 향후 Entity-Mapper-Model 구조를 단순화할 때
+//       이 Entity를 UI에서 직접 사용 가능
+//       (Model과 Mapper 제거 고려)
+// --------------------------------------------------
+@Freezed()
+sealed class BusRouteEntity with _$BusRouteEntity {
+  @SafeStringConverter()
+  const factory BusRouteEntity({
+    @Default('') String regionName,
+    @Default('') String routeDestId,
+    @Default('') String routeDestName,
+    @Default('') String routeId,
+    @Default('') String routeName,
+    @Default('') String routeTypeCd,
+    @Default('') String routeTypeName,
+    @Default('') String staOrder,
+  }) = _BusRouteEntity;
+
+  factory BusRouteEntity.fromJson(Map<String, dynamic> json) => _$BusRouteEntityFromJson(json);
 }

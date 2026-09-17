@@ -1,13 +1,19 @@
-import 'package:bus_51/provider/bus_provider.dart';
+import 'package:bus_51/model/busroute_model.dart';
 import 'package:bus_51/provider/init_provider.dart';
+import 'package:bus_51/theme/app_background.dart';
+import 'package:bus_51/theme/app_tokens.dart';
 import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:bus_51/utils/bus_color.dart';
-import 'package:bus_51/widgets/base_appbar.dart';
+import 'package:bus_51/viewmodel/route_setting_view_model.dart';
+import 'package:bus_51/widget/app_card.dart';
+import 'package:bus_51/widget/bus_pulse_loading.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // View
+// 선택한 정류장을 경유하는 버스 노선을 골라 다음 단계로 진행하는 화면
+// ViewModel 은 온보딩 전체와 수명이 같아(InitSettingScreen 에서 제공) 여기서 만들지 않는다
 // --------------------------------------------------
 class RouteSettingView extends StatefulWidget {
   const RouteSettingView({super.key});
@@ -20,78 +26,267 @@ class _RouteSettingViewState extends State<RouteSettingView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      await context.read<BusProvider>().getBusRouteList();
-    });
+    // 어느 정류장 기준인지만 알려준다. 뒤로 갔다 와도 같은 정류장이면 받아둔 목록을 그대로 쓴다
+    context.read<RouteSettingViewModel>().load(
+          stationId: context.read<InitProvider>().selectedStationModel?.stationId,
+        );
   }
 
   @override
   Widget build(BuildContext context) {
-    final readBusProvider = context.read<BusProvider>();
-    final watchBusProvider = context.watch<BusProvider>();
-    final readInitProvider = context.read<InitProvider>();
-
-    var busRouteModel = watchBusProvider.busRouteModel;
+    final colorScheme = Theme.of(context).colorScheme;
+    final vm = context.watch<RouteSettingViewModel>();
+    final initProvider = context.watch<InitProvider>();
+    final stationName = initProvider.selectedStationModel?.stationName;
 
     return Scaffold(
-      appBar: BaseAppBar(
-        title: "버스 노선",
-        isBackButtonCustom: true,
-        onPressed_notRouter: () {
-          readInitProvider.prevAccountView();
-        },
-      ),
-      body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              spacing: 15,
-              children: [
-                const Row(
-                  children: [
-                    Expanded(flex: 1, child: Text("노선 번호", textAlign: TextAlign.center)),
-                    Expanded(flex: 1, child: Text("버스 종류", textAlign: TextAlign.center)),
-                    Expanded(flex: 2, child: Text("버스 노선 방향", textAlign: TextAlign.center)),
-                  ],
+      body: Container(
+        decoration: appBackgroundDecoration(colorScheme),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(colorScheme, stationName),
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: switch (vm.state) {
+                    RouteSettingLoading() => _buildLoadingState(colorScheme),
+                    RouteSettingEmpty() => _buildEmptyState(colorScheme),
+                    RouteSettingError(:final message) => _buildErrorState(colorScheme, vm, message),
+                    RouteSettingSuccess(:final routes) => _buildRoutesList(routes, initProvider),
+                  },
                 ),
-                Expanded(
-                  child: ListView.builder(
-                      physics: const ClampingScrollPhysics(),
-                      itemCount: busRouteModel?.length ?? 0,
-                      itemBuilder: (context, index) {
-                        var item = busRouteModel![index];
-                        return InkWell(
-                          child: Container(
-                            height: 50,
-                            padding: const EdgeInsets.all(8.0),
-                            child: Row(
-                              spacing: 10,
-                              children: [
-                                Expanded(
-                                  flex: 1,
-                                  child: Text(
-                                    item.routeName,
-                                    style: context.textStyle.titleBoldLg.copyWith(color: BusColor().setColor(item.routeTypeCd)),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ),
-                                Expanded(flex: 1, child: Text(item.routeTypeName, textAlign: TextAlign.center)),
-                                Expanded(flex: 2, child: Text("${item.routeDestName} 방향", textAlign: TextAlign.center)),
-                              ],
-                            ),
-                          ),
-                          onTap: () {
-                            readBusProvider.setSelectedRouteModel(item);
-                            readInitProvider.nextAccountView();
-                          },
-                        );
-                      }),
-                )
+              ),
+              // 목록이 떠 있을 때만 하단 "N개 노선 선택 · 다음" 버튼
+              if (vm.state is RouteSettingSuccess) _buildNextButton(initProvider),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNextButton(InitProvider initProvider) {
+    final count = initProvider.selectedRouteModels.length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 20),
+      child: SizedBox(
+        width: double.infinity,
+        height: 52,
+        child: FilledButton.icon(
+          onPressed: count > 0 ? initProvider.nextAccountView : null,
+          iconAlignment: IconAlignment.end,
+          icon: const Icon(Icons.arrow_forward_rounded, size: 20),
+          label: Text(
+            count > 0 ? '$count개 노선 선택 · 다음' : '노선을 선택해 주세요',
+            style: context.textStyle.labelLarge.copyWith(fontWeight: FontWeight.w600),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(ColorScheme colorScheme, String? stationName) {
+    return Container(
+      padding: const EdgeInsets.only(left: 24.0, right: 24.0, top: 0.0, bottom: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Title Section
+          Container(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '노선 선택',
+                  style: context.textStyle.headlineMedium.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  stationName != null ? "'$stationName' 정류장을 지나는 노선이에요" : '이용하실 버스 노선을 선택해주세요',
+                  style: context.textStyle.bodyLarge.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.7),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(ColorScheme colorScheme) {
+    return Center(
+      child: BusPulseLoading.primary(
+        size: 40,
+        text: '버스 노선을 불러오는 중...',
+        textStyle: context.textStyle.bodyMedium.copyWith(
+          color: colorScheme.onSurface.withValues(alpha: 0.7),
         ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(ColorScheme colorScheme) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.directions_bus_outlined,
+            size: 64,
+            color: colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '이 정류장을 지나는 버스 노선이 없습니다',
+            style: context.textStyle.bodyLarge.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '이전 단계에서 다른 정류장을 선택해 주세요',
+            style: context.textStyle.bodyMedium.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(ColorScheme colorScheme, RouteSettingViewModel vm, String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.wifi_off,
+            size: 64,
+            color: colorScheme.onSurface.withValues(alpha: 0.3),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '노선 정보를 불러오지 못했습니다',
+            style: context.textStyle.bodyLarge.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: context.textStyle.bodyMedium.copyWith(
+              color: colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: () => vm.retry(),
+            icon: const Icon(Icons.refresh, size: 20),
+            label: const Text('다시 시도'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoutesList(List<BusRouteModel> routes, InitProvider initProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      itemCount: routes.length,
+      itemBuilder: (context, index) => _buildRouteItem(routes[index], colorScheme, initProvider),
+    );
+  }
+
+  // 한 줄 행: [노선번호 배지] 종점 방면 / 버스종류 [체크]
+  // 탭하면 체크 토글. 다음 단계 이동은 하단 버튼이 담당한다
+  Widget _buildRouteItem(BusRouteModel item, ColorScheme colorScheme, InitProvider initProvider) {
+    final busColor = BusColor().setColor(item.routeTypeCd);
+    final selected = initProvider.isRouteSelected(item);
+
+    return AppCard(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      selected: selected,
+      onTap: () => initProvider.toggleSelectedRoute(item),
+      child: Row(
+        children: [
+          // 노선번호 배지 (노선색은 여기만)
+          Container(
+            constraints: const BoxConstraints(minWidth: 72),
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: AppSpacing.md),
+            decoration: BoxDecoration(
+              color: busColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadius.inner),
+              border: Border.all(color: busColor.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              item.routeName,
+              style: context.textStyle.titleLarge.copyWith(
+                color: busColor,
+                fontWeight: FontWeight.w800,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${item.routeDestName} 방면',
+                  style: context.textStyle.bodyLarge.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  item.routeTypeName,
+                  style: context.textStyle.caption.copyWith(
+                    color: colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // 체크박스 (선택 상태는 앱 초록)
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: selected ? colorScheme.primary : Colors.transparent,
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(
+                color: selected ? colorScheme.primary : colorScheme.onSurface.withValues(alpha: 0.3),
+                width: 2,
+              ),
+            ),
+            child: selected ? Icon(Icons.check_rounded, size: 16, color: colorScheme.onPrimary) : null,
+          ),
+        ],
       ),
     );
   }

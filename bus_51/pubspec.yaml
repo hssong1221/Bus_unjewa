@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 0.0.13+13
 
 environment:
   sdk: ^3.5.3
@@ -35,8 +35,6 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
-  http: ^1.2.2
-  xml: ^6.5.0
 
   # dependency injection flutter
   get_it: ^8.0.3
@@ -53,15 +51,22 @@ dependencies:
 
   #geolocator:
   geolocator: ^13.0.4
-  geolocator_android : 4.6.0
+  geolocator_android: 4.6.1
 
-  #get_storage:
-  get_storage: ^2.1.1
+  # 로컬 key-value 저장소 (flag + 저장 노선 JSON)
+  shared_preferences: ^2.5.3
 
   # TextAutoSize
   auto_size_text: ^3.0.0
 
+  # flutter_naver_map:
+  flutter_naver_map: ^1.4.4
 
+  # Freezed for immutable data classes
+  freezed_annotation: ^3.1.0
+  json_annotation: ^4.9.0
+  flutter_foreground_task: ^11.0.3
+  flutter_local_notifications: ^22.3.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -72,6 +77,29 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
+  
+  # Code generation
+  build_runner: ^2.4.15
+  freezed: ^3.0.6
+  json_serializable: ^6.9.5
+
+  # 테스트에서 타이머/비동기 시간 제어
+  fake_async: ^1.3.1
+
+  # 테스트용 인메모리 shared_preferences 구현
+  shared_preferences_platform_interface: ^2.4.0
+
+  # 런처 아이콘 생성 (원본은 tool/icon/generate_icon_test.dart 로 그림)
+  flutter_launcher_icons: ^0.14.4
+
+# 런처 아이콘: 원본 생성 후 `dart run flutter_launcher_icons`
+flutter_launcher_icons:
+  android: "ic_launcher"
+  ios: false
+  image_path: "assets/icon/app_icon.png"
+  adaptive_icon_background: "#B2DFDB"
+  adaptive_icon_foreground: "assets/icon/app_icon_foreground.png"
+  min_sdk_android: 21
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -87,7 +115,6 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/
-    - assets/font/
     - assets/images/
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
@@ -100,20 +127,10 @@ flutter:
   # "family" key with the font family name, and a "fonts" key with a
   # list giving the asset and other descriptors for the font. For
   # example:
+  # 폰트 파일은 여기 적은 것만 앱에 들어간다. 코드가 쓰는 굵기(400~800)만 둔다 — 폴더째 assets 에 넣으면 안 쓰는 파일까지 설치 용량에 잡힌다
   fonts:
-    - family: Sunflower
-      fonts:
-        - asset: assets/font/Sunflower-Medium.ttf
-        - asset: assets/font/Sunflower-Light.ttf
-        - asset: assets/font/Sunflower-Bold.ttf
     - family: Pretendard
       fonts:
-        - asset: assets/font/Pretendard-Thin.ttf
-          weight: 100
-        - asset: assets/font/Pretendard-ExtraLight.ttf
-          weight: 200
-        - asset: assets/font/Pretendard-Light.ttf
-          weight: 300
         - asset: assets/font/Pretendard-Regular.ttf
           weight: 400
         - asset: assets/font/Pretendard-Medium.ttf
@@ -124,8 +141,6 @@ flutter:
           weight: 700
         - asset: assets/font/Pretendard-ExtraBold.ttf
           weight: 800
-        - asset: assets/font/Pretendard-Black.ttf
-          weight: 900
   #   - family: Trajan Pro
   #     fonts:
   #       - asset: fonts/TrajanPro.ttf

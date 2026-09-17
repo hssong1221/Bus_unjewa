@@ -1,9 +1,11 @@
-import 'package:bus_51/provider/bus_provider.dart';
 import 'package:bus_51/screen/init_setting_screen/init_setting_screen.dart';
 import 'package:bus_51/screen/main_screen/bus_list_screen.dart';
+import 'package:bus_51/service/storage_service.dart';
+import 'package:bus_51/theme/app_tokens.dart';
+import 'package:bus_51/theme/custom_text_style.dart';
 import 'package:flutter/material.dart';
+import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
 // --------------------------------------------------
 // Screen
@@ -30,46 +32,132 @@ class SplashView extends StatefulWidget {
   State<SplashView> createState() => _SplashViewState();
 }
 
-class _SplashViewState extends State<SplashView> {
+class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
+  // Animation constants
+  static const Duration _fadeDuration = Duration(milliseconds: 1500);
+  static const Duration _scaleDuration = Duration(milliseconds: 2000);
+  static const Duration _splashDelay = Duration(milliseconds: 2500);
+  
+  late AnimationController _fadeController;
+  late AnimationController _scaleController;
+  late Animation<double> _fadeAnimation;
+  late Animation<double> _scaleAnimation;
 
   @override
   void initState() {
     super.initState();
+    _setupAnimations();
+    _startSplashSequence();
+  }
 
+  void _setupAnimations() {
+    _fadeController = AnimationController(duration: _fadeDuration, vsync: this);
+    _scaleController = AnimationController(duration: _scaleDuration, vsync: this);
 
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
+      CurvedAnimation(parent: _scaleController, curve: Curves.easeOutBack),
+    );
+
+    _fadeController.forward();
+    _scaleController.forward();
+  }
+
+  void _startSplashSequence() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Future.delayed(const Duration(milliseconds: 1000), () async {
-        final readBusProvider = context.read<BusProvider>();
-        //readBusProvider.deleteAllData();
-        var model = await readBusProvider.loadUserDataList();
+      Future.delayed(_splashDelay, () {
+        // 딜레이 동안 화면이 사라졌으면 라우팅하지 않는다
+        if (!mounted) return;
+        try {
+          var model = GetIt.I<StorageService>().loadUserModelList();
 
-        if(model.isEmpty) {
+          if(model.isEmpty) {
+            context.goNamed(InitSettingScreen.routeName);
+          } else {
+            context.goNamed(BusListScreen.routeName);
+          }
+        } catch (e) {
+          // 로컬 데이터 로딩 실패 = 데이터 없음으로 처리
           context.goNamed(InitSettingScreen.routeName);
-        } else {
-          context.goNamed(BusListScreen.routeName);
         }
-
-        // fcm 토큰 확인
-        // 로그인 상태 체크 -> 로컬에 저장데이터 있는지 없는지만 확인하는 것으로 변경하기
-        /*final isLogin = (await getIt<StorageServices>().getAccessToken()).isNotEmpty;
-        if (!context.mounted) return;*/
-
-        /*if (isLogin) {
-          AppConstants.setGuestMode(GuestMode.user);
-          context.goNamed(MainScreen.routeName);
-        } else {
-          AppConstants.setGuestMode(GuestMode.guest);
-          context.goNamed(AccountScreen.routeName);
-        }*/
       });
     });
   }
 
   @override
+  void dispose() {
+    _fadeController.dispose();
+    _scaleController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: SafeArea(
-        child: SizedBox.shrink(),
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.primary,
+              colorScheme.primaryContainer,
+              colorScheme.secondary,
+            ],
+            stops: const [0.0, 0.6, 1.0],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            // 스플래시는 앱에서 유일하게 장식 모션(fade + scale)을 허용하는 구간.
+            // FadeTransition/ScaleTransition 이 각자 애니메이션을 구독하므로 AnimatedBuilder 는 불필요
+            child: FadeTransition(
+              opacity: _fadeAnimation,
+              child: ScaleTransition(
+                scale: _scaleAnimation,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // 플랫 원칙에 맞춰 그림자 없이 반투명 surface 원만 사용
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.xxl),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface.withValues(alpha: 0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.directions_bus,
+                        size: 64,
+                        color: colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.xxl),
+                    Text(
+                      'Bus 언제와',
+                      style: context.textStyle.headlineMedium.copyWith(
+                        color: colorScheme.onPrimary,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      '실시간 버스 정보 서비스',
+                      style: context.textStyle.bodyLarge.copyWith(
+                        color: colorScheme.onPrimary.withValues(alpha: 0.8),
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

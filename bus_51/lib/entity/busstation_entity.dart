@@ -1,34 +1,29 @@
-class BusStationEntity {
-  final String centerYn;
-  final String mobileNo;    // 정류소 번호
-  final String regionName;
-  final int stationId;      // 정류소 id
-  final String stationName; // 정류소 이름
-  final double x;
-  final double y;
-  final int distance;
+import 'package:bus_51/utils/safe_string_converter.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  BusStationEntity({
-    required this.centerYn,
-    required this.mobileNo,
-    required this.regionName,
-    required this.stationId,
-    required this.stationName,
-    required this.x,
-    required this.y,
-    required this.distance,
-  });
+part 'busstation_entity.freezed.dart';
+part 'busstation_entity.g.dart';
 
-  factory BusStationEntity.fromJson(Map<String, dynamic> json) {
-    return BusStationEntity(
-      centerYn: json['centerYn'],
-      mobileNo: json['mobileNo'],
-      regionName: json['regionName'],
-      stationId: json['stationId'],
-      stationName: json['stationName'],
-      x: json['x'],
-      y: json['y'],
-      distance: json['distance'],
-    );
-  }
+// --------------------------------------------------
+// 버스 정류장 Entity
+// --------------------------------------------------
+// NOTE: 향후 Entity-Mapper-Model 구조를 단순화할 때
+//       이 Entity를 UI에서 직접 사용 가능
+//       (Model과 Mapper 제거 고려)
+// --------------------------------------------------
+@Freezed()
+sealed class BusStationEntity with _$BusStationEntity {
+  @SafeStringConverter()
+  const factory BusStationEntity({
+    @Default('') String centerYn,
+    @Default('') String mobileNo,    // 정류소 번호
+    @Default('') String regionName,
+    @Default('') String stationId,   // 정류소 id
+    @Default('') String stationName, // 정류소 이름
+    @Default('') String x,
+    @Default('') String y,
+    @Default('') String distance,
+  }) = _BusStationEntity;
+
+  factory BusStationEntity.fromJson(Map<String, dynamic> json) => _$BusStationEntityFromJson(json);
 }
