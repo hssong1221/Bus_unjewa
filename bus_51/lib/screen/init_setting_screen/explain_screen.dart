@@ -115,7 +115,7 @@ class _ExplainScreenViewState extends State<ExplainScreenView> {
           ),
           const SizedBox(height: AppSpacing.xl),
           Text(
-            "매일 같은 버스로\n출퇴근하는 당신을 위한",
+            "매일 같은 버스를\n기다리는 당신을 위한",
             style: context.textStyle.headlineMedium.copyWith(
               color: colorScheme.onSurface,
               height: 1.4,
