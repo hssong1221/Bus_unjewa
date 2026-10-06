@@ -56,8 +56,14 @@ void main() async {
   );
   setUp(prefs);
 
-  /// 도착 알람 채널을 미리 만든다 (사용자가 설정에서 끌 수 있고, 켜기 전에 그 상태를 확인한다)
-  await initBusNotifications();
+  /// 도착 알람 채널을 미리 만든다 (사용자가 설정에서 끌 수 있고, 켜기 전에 그 상태를 확인한다).
+  /// 실패해도 앱은 띄운다 — 도착 알림 하나 때문에 흰 화면이 되면 안 된다.
+  /// 알림을 켤 때 권한·채널을 다시 확인하고, 서비스 isolate 도 시작할 때 다시 초기화한다
+  try {
+    await initBusNotifications();
+  } catch (e) {
+    debugPrint('알림 채널 초기화 실패: $e');
+  }
 
   /// Dio
   final Dio dio = DioSingleton.getInstance();
