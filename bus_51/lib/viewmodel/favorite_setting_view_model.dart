@@ -81,14 +81,16 @@ class FavoriteSettingViewModel extends ChangeNotifier {
     final r = routes[index];
     try {
       final stations = await _repository.getStationsOnRoute(routeId: r.routeId);
-      final staOrder = int.tryParse(r.staOrder);
+      // 목록의 위치가 아니라 순번 값으로 찾는다 (순번이 1부터 빠짐없이 이어진다고 가정하지 않는다.
+      // 상세 화면 타임라인과 같은 기준)
+      final curIndex = stations.indexWhere((s) => s.stationSeq == r.staOrder);
 
-      if (stations.isEmpty || staOrder == null || staOrder < 1 || staOrder > stations.length) {
+      if (curIndex < 0) {
         _states[index] = const FavoriteSettingError('정류장 정보를 불러오지 못했습니다');
       } else {
         _states[index] = FavoriteSettingReady(
-          curStation: stations[staOrder - 1],
-          timelineStations: stations.sublist(staOrder - 1),
+          curStation: stations[curIndex],
+          timelineStations: stations.sublist(curIndex),
         );
       }
     } on ApiException catch (e) {

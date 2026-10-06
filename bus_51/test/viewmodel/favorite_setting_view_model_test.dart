@@ -97,6 +97,22 @@ void main() {
       expect(vm.canSave, isTrue);
     });
 
+    test('순번이 중간에 빠져 있어도 목록 위치가 아니라 순번 값으로 탑승 정류장을 찾는다', () async {
+      // 순번 1, 2, 4, 5, 6 (3 이 없음) → staOrder 5 는 목록의 4번째(인덱스 3)
+      final stations = [for (final seq in [1, 2, 4, 5, 6]) makeStation(seq)];
+      final vm = FavoriteSettingViewModel(
+        FakeBusRouteStationRepository(stations: stations),
+        FakeStorageService(),
+        routes: [makeRoute(staOrder: '5')],
+      );
+
+      await vm.init();
+
+      final state = vm.stateAt(0) as FavoriteSettingReady;
+      expect(state.curStation.stationSeq, '5');
+      expect(state.timelineStations.map((s) => s.stationSeq), ['5', '6']);
+    });
+
     test('staOrder가 정류장 목록 범위를 벗어나면 에러 상태 (RangeError 크래시 방지)', () async {
       final vm = FavoriteSettingViewModel(
         FakeBusRouteStationRepository(stations: makeStations(5)),

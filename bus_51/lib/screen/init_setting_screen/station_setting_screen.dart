@@ -171,7 +171,7 @@ class _StationSettingViewState extends State<StationSettingView> {
   }
 
   Widget _buildMapArea(ColorScheme colorScheme, StationSettingViewModel vm, MapPoint initialPosition) {
-    final notice = vm.noticeMessage ?? (vm.usedFallbackPosition ? '위치 권한이 없어 기본 위치를 표시합니다' : null);
+    final notice = vm.noticeMessage ?? vm.fallbackMessage;
     final camera = _cameraTarget ?? initialPosition;
 
     return Container(

@@ -7,8 +7,21 @@ import 'package:geolocator/geolocator.dart';
 /// 지도 좌표 (lat=위도, lng=경도)
 typedef MapPoint = ({double lat, double lng});
 
-/// 현위치 좌표를 얻는 함수. 테스트에서 GPS 없이 주입 가능
+/// 현위치 좌표를 얻는 함수. 테스트에서 GPS 없이 주입 가능.
+/// 권한 거부는 [PermissionDeniedException], 기기 위치 꺼짐은 [LocationServiceDisabledException] 을 던진다
 typedef PositionResolver = Future<MapPoint> Function();
+
+/// 현위치 대신 기본 위치를 쓴 이유
+enum LocationFallbackReason {
+  /// 위치 권한 거부
+  permissionDenied,
+
+  /// 기기 위치(GPS)가 꺼져 있음
+  serviceDisabled,
+
+  /// 권한·GPS 는 켜져 있지만 위치를 못 잡음 (실내 등, 시간 초과 후 마지막 위치도 없음)
+  notFound,
+}
 
 // --------------------------------------------------
 // 정류장 선택(지도) 화면 ViewModel
@@ -32,9 +45,20 @@ class StationSettingViewModel extends ChangeNotifier {
   MapPoint? _initialPosition;
   MapPoint? get initialPosition => _initialPosition;
 
-  /// GPS를 못 얻어 기본 위치로 대체했는지 (안내 문구용)
-  bool _usedFallbackPosition = false;
-  bool get usedFallbackPosition => _usedFallbackPosition;
+  /// 현위치를 못 얻은 이유. null 이면 현위치를 얻었다
+  LocationFallbackReason? _fallbackReason;
+  LocationFallbackReason? get fallbackReason => _fallbackReason;
+
+  /// GPS를 못 얻어 기본 위치로 대체했는지
+  bool get usedFallbackPosition => _fallbackReason != null;
+
+  /// 기본 위치로 대체했을 때 지도 위에 띄울 안내. 이유마다 사용자가 할 일이 달라 문구를 나눈다
+  String? get fallbackMessage => switch (_fallbackReason) {
+        null => null,
+        LocationFallbackReason.permissionDenied => '위치 권한이 없어 기본 위치를 표시합니다',
+        LocationFallbackReason.serviceDisabled => '위치(GPS)를 켜주세요. 지금은 기본 위치를 표시합니다',
+        LocationFallbackReason.notFound => '현재 위치를 찾지 못해 기본 위치를 표시합니다',
+      };
 
   List<BusStationModel> _stations = [];
   List<BusStationModel> get stations => _stations;
@@ -80,7 +104,11 @@ class StationSettingViewModel extends ChangeNotifier {
       _initialPosition = await _positionResolver();
     } catch (e) {
       _initialPosition = defaultPosition;
-      _usedFallbackPosition = true;
+      _fallbackReason = switch (e) {
+        PermissionDeniedException() => LocationFallbackReason.permissionDenied,
+        LocationServiceDisabledException() => LocationFallbackReason.serviceDisabled,
+        _ => LocationFallbackReason.notFound,
+      };
     }
     notifyListeners();
     await searchAround(_initialPosition!);
@@ -131,7 +159,11 @@ class StationSettingViewModel extends ChangeNotifier {
       permission = await Geolocator.requestPermission();
     }
     if (permission == LocationPermission.denied || permission == LocationPermission.deniedForever) {
-      throw Exception('위치 권한이 거부되었습니다');
+      throw const PermissionDeniedException('위치 권한이 거부되었습니다');
+    }
+    // 권한은 있는데 기기 위치가 꺼져 있으면 마지막 위치도 대개 없으므로 바로 안내로 넘어간다
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const LocationServiceDisabledException();
     }
 
     try {

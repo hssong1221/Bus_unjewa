@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:bus_51/model/busstation_model.dart';
 import 'package:bus_51/repository/bus_station_repository.dart';
 import 'package:bus_51/utils/api_exception.dart';
 import 'package:bus_51/viewmodel/station_setting_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geolocator/geolocator.dart';
 
 class FakeBusStationRepository implements BusStationRepository {
   FakeBusStationRepository({this.stations = const [], this.exception});
@@ -64,6 +67,39 @@ void main() {
       expect(vm.usedFallbackPosition, isTrue);
       expect(repo.callCount, 1);
       expect(vm.stations, hasLength(1));
+    });
+
+    test('init: 기본 위치로 대체한 이유마다 안내 문구가 다르다 (권한 거부 / GPS 꺼짐 / 위치 못 잡음)', () async {
+      Future<StationSettingViewModel> initWith(Object error) async {
+        final vm = StationSettingViewModel(
+          FakeBusStationRepository(),
+          positionResolver: () async => throw error,
+        );
+        await vm.init();
+        return vm;
+      }
+
+      final denied = await initWith(const PermissionDeniedException('거부'));
+      expect(denied.fallbackReason, LocationFallbackReason.permissionDenied);
+      expect(denied.fallbackMessage, '위치 권한이 없어 기본 위치를 표시합니다');
+
+      final gpsOff = await initWith(const LocationServiceDisabledException());
+      expect(gpsOff.fallbackReason, LocationFallbackReason.serviceDisabled);
+      expect(gpsOff.fallbackMessage, '위치(GPS)를 켜주세요. 지금은 기본 위치를 표시합니다');
+
+      final timeout = await initWith(TimeoutException('GPS 응답 없음'));
+      expect(timeout.fallbackReason, LocationFallbackReason.notFound);
+      expect(timeout.fallbackMessage, '현재 위치를 찾지 못해 기본 위치를 표시합니다');
+    });
+
+    test('init: 현위치를 얻으면 안내 문구가 없다', () async {
+      final vm = StationSettingViewModel(
+        FakeBusStationRepository(),
+        positionResolver: () async => (lat: 37.5, lng: 127.1),
+      );
+      await vm.init();
+      expect(vm.fallbackReason, isNull);
+      expect(vm.fallbackMessage, isNull);
     });
 
     test('searchAround: 검색 성공 시 정류장이 교체되고 기존 선택은 해제된다', () async {
