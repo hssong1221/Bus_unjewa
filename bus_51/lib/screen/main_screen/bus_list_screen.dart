@@ -61,6 +61,9 @@ class _BusListViewState extends State<BusListView> {
   // Back button handling
   DateTime? _lastPressed;
 
+  /// 다른 화면으로 이동하는 중. 카드·추가 버튼을 빠르게 두 번 눌러 같은 화면이 두 겹으로 열리는 것을 막는다
+  bool _navigating = false;
+
   /// 앱이 백그라운드로 가면 갱신을 멈추고, 다시 보이면 재조회한다 (보지 않는 동안 API 를 쓰지 않도록).
   /// onResume 이 아니라 onShow 를 쓰는 이유: 알림창을 내렸다 올리는 것만으로도 inactive ↔ resumed 가
   /// 오가며 onResume 이 불리는데, 그때는 멈춘 적이 없으니 다시 조회할 이유가 없다
@@ -92,6 +95,8 @@ class _BusListViewState extends State<BusListView> {
   /// 노선 추가 플로우로 이동, 돌아오면 저장소 재동기화 + 갱신 재개 (새 카드가 있으니 다시 조회하게 된다).
   /// 다른 화면에 있는 동안은 갱신을 멈춘다 (정류장 수만큼 API 를 부르므로)
   void _goToAddRoute() {
+    if (_navigating) return;
+    _navigating = true;
     final viewModel = context.read<BusListViewModel>()..pause();
     context
         .pushNamed(
@@ -99,6 +104,7 @@ class _BusListViewState extends State<BusListView> {
           queryParameters: {'startFromStation': 'true'},
         )
         .then((_) {
+      _navigating = false;
       if (!mounted) return;
       viewModel.reload();
       viewModel.resume();
@@ -107,6 +113,8 @@ class _BusListViewState extends State<BusListView> {
 
   /// 상세(메인) 화면으로 이동. 돌아오면 갱신 재개 (30초 안이면 다시 받지 않고 카운트다운만 이어간다)
   void _goToDetail(UserSaveModel item) {
+    if (_navigating) return;
+    _navigating = true;
     final viewModel = context.read<BusListViewModel>()..pause();
     context
         .pushNamed(
@@ -114,6 +122,7 @@ class _BusListViewState extends State<BusListView> {
           queryParameters: {'idx': viewModel.indexOf(item).toString()},
         )
         .then((_) {
+      _navigating = false;
       if (mounted) viewModel.resume();
     });
   }
@@ -134,6 +143,12 @@ class _BusListViewState extends State<BusListView> {
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
+
+        // 편집 모드면 뒤로가기는 편집 모드만 끝낸다 (종료 경고를 띄우지 않는다)
+        if (viewModel.isSelectionMode) {
+          viewModel.toggleSelectionMode();
+          return;
+        }
 
         final now = DateTime.now();
         const maxDuration = Duration(seconds: 2);
